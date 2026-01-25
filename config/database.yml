@@ -1,0 +1,42 @@
+# ============================================================================
+# Database Configuration
+# ============================================================================
+#
+# LEARNING NOTES:
+#
+# Rails uses database.yml to configure database connections.
+# Different environments (development, test, production) can use different DBs.
+#
+# SETUP:
+# - Development: SQLite (no setup required, just works)
+# - Test: SQLite (fast, isolated)
+# - Production: MySQL (per RAILS_CONVENTIONS.md)
+#
+# MySQL PRODUCTION SETUP:
+# Set the DATABASE_URL environment variable:
+#   export DATABASE_URL="mysql2://user:password@host/database"
+#
+# ============================================================================
+
+# Development uses SQLite for simplicity
+# No database server required - just a file
+development:
+  adapter: sqlite3
+  database: db/development.sqlite3
+  pool: 5
+  timeout: 5000
+
+# Test also uses SQLite for speed and isolation
+test:
+  adapter: sqlite3
+  database: db/test.sqlite3
+  pool: 5
+  timeout: 5000
+
+# Production uses MySQL (per RAILS_CONVENTIONS.md)
+# Configure via DATABASE_URL environment variable
+production:
+  adapter: mysql2
+  encoding: utf8mb4
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  url: <%= ENV['DATABASE_URL'] %>

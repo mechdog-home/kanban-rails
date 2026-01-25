@@ -1,0 +1,64 @@
+/ ============================================================================
+/ Partial: Task Form
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This is a partial - a reusable template fragment.
+/ Partials are named with a leading underscore (_form.html.slim).
+/ Render them with: render 'form', task: @task
+/
+/ We use simple_form with Bootstrap integration for clean forms.
+/
+/ ============================================================================
+
+/ simple_form generates Bootstrap-compatible form markup
+= simple_form_for task, html: { class: 'needs-validation' } do |f|
+  / Display validation errors if any
+  - if task.errors.any?
+    .alert.alert-danger
+      h5 = "#{task.errors.count} error(s) prevented this task from being saved:"
+      ul.mb-0
+        - task.errors.full_messages.each do |message|
+          li = message
+
+  / Title field (required)
+  .mb-3
+    = f.input :title, 
+              input_html: { class: 'form-control', autofocus: true },
+              label: 'Title',
+              placeholder: 'Enter task title'
+
+  / Description field (optional)
+  .mb-3
+    = f.input :description, 
+              as: :text,
+              input_html: { class: 'form-control', rows: 3 },
+              label: 'Description',
+              placeholder: 'Optional description'
+
+  / Assignee dropdown
+  .mb-3
+    = f.input :assignee,
+              collection: Task::ASSIGNEES.map { |a| [a.titleize, a] },
+              input_html: { class: 'form-select' },
+              label: 'Assignee'
+
+  / Status dropdown
+  .mb-3
+    = f.input :status,
+              collection: Task::STATUSES.map { |s| [s.titleize.gsub('_', ' '), s] },
+              input_html: { class: 'form-select' },
+              label: 'Status'
+
+  / Priority dropdown
+  .mb-3
+    = f.input :priority,
+              collection: Task::PRIORITIES.map { |p| [p.titleize, p] },
+              input_html: { class: 'form-select' },
+              label: 'Priority'
+
+  / Form buttons
+  .d-flex.gap-2
+    = f.submit 'Save Task', class: 'btn btn-primary'
+    = link_to 'Cancel', tasks_path, class: 'btn btn-outline-secondary'
