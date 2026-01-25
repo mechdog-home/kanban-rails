@@ -61,3 +61,7 @@ gem 'sassc-rails'       # For Bootstrap SCSS
 
 # SQLite for development/test (MySQL for production)
 gem 'sqlite3', group: [:development, :test]
+
+# Hotwire - Modern Rails frontend
+gem 'turbo-rails'     # Turbo Drive, Frames, Streams
+gem 'stimulus-rails'  # Stimulus JS controllers
