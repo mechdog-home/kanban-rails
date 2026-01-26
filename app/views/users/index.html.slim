@@ -1,0 +1,67 @@
+/ ============================================================================
+/ View: Users Index (Admin)
+/ ============================================================================
+/
+/ Lists all users for super_admin management.
+/ Shows name, email, role, and action buttons.
+/
+/ ============================================================================
+
+.container.mt-4
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1 User Management
+    = link_to 'Add User', new_user_path, class: 'btn btn-primary'
+
+  .card
+    .card-header.bg-primary.text-white
+      h5.card-title.mb-0
+        i.bi.bi-people-fill.me-2
+        | All Users (#{@users.count})
+    
+    .table-responsive
+      table.table.table-hover.mb-0
+        thead.table-light
+          tr
+            th Name
+            th Email
+            th Role
+            th.text-center Actions
+        tbody
+          - @users.each do |user|
+            tr
+              td
+                = user.name
+                - if user == current_user
+                  span.badge.bg-info.ms-2 You
+              td= user.email
+              td
+                - case user.role
+                - when 'super_admin'
+                  span.badge.bg-danger Super Admin
+                - when 'admin'
+                  span.badge.bg-warning.text-dark Admin
+                - else
+                  span.badge.bg-secondary User
+              td.text-center
+                .btn-group.btn-group-sm
+                  = link_to edit_user_path(user), class: 'btn btn-outline-primary' do
+                    i.bi.bi-pencil
+                  - if policy(user).destroy?
+                    = link_to user_path(user), method: :delete, data: { confirm: "Delete user '#{user.name}'?" }, class: 'btn btn-outline-danger' do
+                      i.bi.bi-trash
+
+  .card.mt-4
+    .card-header.bg-light
+      h6.mb-0
+        i.bi.bi-info-circle.me-2
+        | Role Descriptions
+    .card-body
+      dl.row.mb-0
+        dt.col-sm-2 Super Admin
+        dd.col-sm-10 Full access. Can manage users, assign roles, and perform all actions.
+        
+        dt.col-sm-2 Admin
+        dd.col-sm-10 Can manage all tasks but cannot manage users.
+        
+        dt.col-sm-2 User
+        dd.col-sm-10 Can create and manage their own tasks.

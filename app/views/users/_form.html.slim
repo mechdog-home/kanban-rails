@@ -1,0 +1,58 @@
+/ ============================================================================
+/ Partial: User Form
+/ ============================================================================
+/
+/ Shared form for new and edit user views.
+/ Role field only shown to super_admin.
+/
+/ ============================================================================
+
+= simple_form_for @user do |f|
+  - if @user.errors.any?
+    .alert.alert-danger
+      h5.alert-heading Errors prevented saving:
+      ul.mb-0
+        - @user.errors.full_messages.each do |msg|
+          li= msg
+
+  .card
+    .card-header.bg-primary.text-white
+      h5.card-title.mb-0
+        = @user.new_record? ? 'New User' : "Edit #{@user.name}"
+    
+    .card-body
+      .row
+        .col-md-6
+          = f.input :name, placeholder: 'Full Name', input_html: { class: 'form-control' }
+        
+        .col-md-6
+          = f.input :email, placeholder: 'email@example.com', input_html: { class: 'form-control' }
+      
+      .row
+        .col-md-6
+          = f.input :password, 
+                    hint: @user.new_record? ? nil : 'Leave blank to keep current password',
+                    input_html: { class: 'form-control', autocomplete: 'new-password' }
+        
+        .col-md-6
+          = f.input :password_confirmation, 
+                    input_html: { class: 'form-control', autocomplete: 'new-password' }
+      
+      - if policy(User).change_role?
+        hr
+        h6.text-muted Role Assignment
+        .row
+          .col-md-6
+            = f.input :role, 
+                      collection: User::ROLES.map { |r| [r.titleize.gsub('_', ' '), r] },
+                      include_blank: false,
+                      input_html: { class: 'form-select' }
+            
+            - if @user == current_user
+              .alert.alert-warning.mt-2
+                i.bi.bi-exclamation-triangle.me-2
+                | Changing your own role may lock you out of admin features.
+
+    .card-footer
+      = f.submit class: 'btn btn-primary'
+      = link_to 'Cancel', users_path, class: 'btn btn-secondary ms-2'

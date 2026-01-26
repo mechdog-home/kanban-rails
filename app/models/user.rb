@@ -4,23 +4,27 @@
 #
 # LEARNING NOTES:
 #
-# User model handles authentication via Devise and owns tasks.
+# User model handles authentication via Devise and authorization via roles.
+#
+# ROLES:
+# - user: Regular user (default for new signups)
+# - admin: Can manage all tasks
+# - super_admin: Full access, can manage users
 #
 # KEY CONCEPTS:
 # - Devise provides authentication (login, logout, password reset, etc.)
-# - has_many :tasks creates the association to tasks this user created
-# - The name field lets us display friendly names instead of emails
-#
-# DEVISE MODULES:
-# - database_authenticatable: Stores encrypted password in DB
-# - registerable: Users can sign up
-# - recoverable: Password reset via email
-# - rememberable: "Remember me" checkbox functionality
-# - validatable: Email/password validations
+# - Role field controls authorization level
+# - Helper methods (super_admin?, admin?) make policy checks readable
 #
 # ============================================================================
 
 class User < ApplicationRecord
+  # -------------------------------------------------------------------------
+  # Constants
+  # -------------------------------------------------------------------------
+  
+  ROLES = %w[user admin super_admin].freeze
+
   # -------------------------------------------------------------------------
   # Devise Configuration
   # -------------------------------------------------------------------------
@@ -40,6 +44,26 @@ class User < ApplicationRecord
   # -------------------------------------------------------------------------
 
   validates :name, presence: true
+  validates :role, presence: true, inclusion: { in: ROLES }
+
+  # -------------------------------------------------------------------------
+  # Role Helper Methods
+  # -------------------------------------------------------------------------
+  
+  # Is this user a super admin? (full access)
+  def super_admin?
+    role == 'super_admin'
+  end
+  
+  # Is this user an admin or higher?
+  def admin?
+    role.in?(%w[admin super_admin])
+  end
+  
+  # Is this user a regular user?
+  def regular_user?
+    role == 'user'
+  end
 
   # -------------------------------------------------------------------------
   # Instance Methods
@@ -48,5 +72,14 @@ class User < ApplicationRecord
   # Display name for the UI - prefer name over email
   def display_name
     name.presence || email.split('@').first
+  end
+  
+  # Role badge for display
+  def role_badge
+    case role
+    when 'super_admin' then 'Super Admin'
+    when 'admin' then 'Admin'
+    else 'User'
+    end
   end
 end

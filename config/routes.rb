@@ -31,6 +31,9 @@ Rails.application.routes.draw do
   # HTML routes for the Kanban board interface
   resources :tasks
   
+  # User management (super_admin only, enforced by Pundit)
+  resources :users
+  
   # The Kanban board is our homepage
   root 'tasks#index'
   
