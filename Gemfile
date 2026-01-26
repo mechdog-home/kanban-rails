@@ -66,3 +66,7 @@ gem 'sqlite3', group: [:development, :test]
 # Hotwire - Modern Rails frontend
 gem 'turbo-rails'     # Turbo Drive, Frames, Streams
 gem 'stimulus-rails'  # Stimulus JS controllers
+
+# Authentication & Authorization (per RAILS_CONVENTIONS.md)
+gem 'devise'          # User authentication
+gem 'pundit'          # Policy-based authorization

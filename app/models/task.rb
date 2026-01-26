@@ -25,6 +25,16 @@
 
 class Task < ApplicationRecord
   # ==========================================================================
+  # ASSOCIATIONS
+  # ==========================================================================
+  #
+  # LEARNING NOTE: belongs_to creates the association to the user who created
+  # this task. The `optional: true` allows tasks without a user (for migration
+  # of existing data and API access).
+  
+  belongs_to :user, optional: true
+
+  # ==========================================================================
   # CONSTANTS
   # ==========================================================================
   

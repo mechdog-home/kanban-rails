@@ -21,6 +21,7 @@
 # ============================================================================
 
 Rails.application.routes.draw do
+  devise_for :users
   # API namespace for JSON endpoints
   # This creates routes like /api/tasks
   namespace :api do

@@ -12,6 +12,8 @@
 # - `before_action` filters run before specified actions
 # - `respond_to` handles multiple formats (HTML, JSON)
 # - Strong parameters prevent mass assignment vulnerabilities
+# - Devise's `authenticate_user!` requires login for HTML views
+# - Pundit's `authorize` checks policy permissions
 #
 # COMPARISON TO EXPRESS:
 # - Express: You'd define route handlers in separate files
@@ -24,6 +26,11 @@
 # - PATCH  /tasks/:id      -> update (modify task)
 # - DELETE /tasks/:id      -> destroy (remove task)
 #
+# AUTHENTICATION:
+# - HTML requests require login (Devise)
+# - JSON API requests are open (for Sparky's heartbeat checks)
+#   In production, add API token auth for JSON endpoints
+#
 # ============================================================================
 
 class TasksController < ApplicationController
@@ -31,8 +38,15 @@ class TasksController < ApplicationController
   # In production, you'd use token-based auth instead
   skip_before_action :verify_authenticity_token, if: -> { request.format.json? }
   
+  # Require login for HTML views, but allow JSON API access
+  before_action :authenticate_user!, unless: -> { request.format.json? }
+  
   # Find the task before show, update, and destroy actions
-  before_action :set_task, only: [:show, :update, :destroy]
+  before_action :set_task, only: [:show, :edit, :update, :destroy]
+  
+  # Authorize with Pundit (for HTML requests with a logged-in user)
+  after_action :verify_authorized, except: :index, unless: -> { request.format.json? }
+  after_action :verify_policy_scoped, only: :index, unless: -> { request.format.json? }
 
   # ==========================================================================
   # GET /tasks
@@ -46,7 +60,13 @@ class TasksController < ApplicationController
   # - status: Filter by status (e.g., ?status=in_progress)
   #
   def index
-    @tasks = Task.all
+    # Use Pundit scope for HTML (authorized records only)
+    # Use all tasks for JSON API
+    @tasks = if request.format.json?
+               Task.all
+             else
+               policy_scope(Task)
+             end
     
     # Apply filters if provided
     @tasks = @tasks.for_assignee(params[:assignee]) if params[:assignee].present?
@@ -68,6 +88,8 @@ class TasksController < ApplicationController
   # Show a single task.
   #
   def show
+    authorize @task unless request.format.json?
+    
     respond_to do |format|
       format.html # Renders app/views/tasks/show.html.slim
       format.json { render json: @task }
@@ -82,6 +104,7 @@ class TasksController < ApplicationController
   #
   def new
     @task = Task.new
+    authorize @task
   end
 
   # ==========================================================================
@@ -91,7 +114,7 @@ class TasksController < ApplicationController
   # Show form for editing an existing task (HTML only).
   #
   def edit
-    @task = Task.find(params[:id])
+    authorize @task
   end
 
   # ==========================================================================
@@ -111,6 +134,11 @@ class TasksController < ApplicationController
   #
   def create
     @task = Task.new(task_params)
+    
+    # Associate task with current user if logged in
+    @task.user = current_user if current_user
+    
+    authorize @task unless request.format.json?
     
     respond_to do |format|
       if @task.save
@@ -132,6 +160,8 @@ class TasksController < ApplicationController
   # Request body (JSON): Same as create, all fields optional
   #
   def update
+    authorize @task unless request.format.json?
+    
     respond_to do |format|
       if @task.update(task_params)
         format.html { redirect_to tasks_path, notice: 'Task was successfully updated.' }
@@ -150,6 +180,8 @@ class TasksController < ApplicationController
   # Delete a task.
   #
   def destroy
+    authorize @task unless request.format.json?
+    
     @task.destroy
     
     respond_to do |format|
@@ -165,7 +197,7 @@ class TasksController < ApplicationController
   private
 
   # Find task by ID from URL parameter
-  # Called by before_action for show, update, destroy
+  # Called by before_action for show, edit, update, destroy
   def set_task
     @task = Task.find(params[:id])
   rescue ActiveRecord::RecordNotFound
