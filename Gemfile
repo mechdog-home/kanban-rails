@@ -56,8 +56,9 @@ end
 # UI and Templates (per RAILS_CONVENTIONS.md)
 gem 'slim-rails'        # Lightweight templating
 gem 'simple_form'       # Flexible form builder
-gem 'bootstrap', '~> 5.3'  # Bootstrap 5 styling
-gem 'sassc-rails'       # For Bootstrap SCSS
+# Bootstrap via CDN in views (no gem needed for CSS)
+# If you need SCSS processing, use dartsass-rails instead of sassc-rails
+# gem 'dartsass-rails'  # Modern SASS processor (works with propshaft)
 
 # SQLite for development/test (MySQL for production)
 gem 'sqlite3', group: [:development, :test]
