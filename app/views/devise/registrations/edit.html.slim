@@ -1,0 +1,40 @@
+/ ============================================================================
+/ Devise: Edit Profile Page
+/ ============================================================================
+
+.container
+  .row.justify-content-center.mt-5
+    .col-md-6.col-lg-5
+      .card.shadow
+        .card-header.bg-primary.text-white.text-center
+          h4.mb-0
+            i.bi.bi-gear.me-2
+            | Edit Profile
+        .card-body.p-4
+          = simple_form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f|
+            = f.error_notification message: "Please fix the errors below:", class: "alert alert-danger"
+            .mb-3
+              = f.input :name, required: false, input_html: { class: "form-control" }, label_html: { class: "form-label" }
+            .mb-3
+              = f.input :email, required: true, autofocus: true, input_html: { class: "form-control" }, label_html: { class: "form-label" }
+            - if devise_mapping.confirmable? && resource.pending_reconfirmation?
+              .alert.alert-info
+                | Currently waiting confirmation for: #{resource.unconfirmed_email}
+            hr
+            p.text-muted.small Leave password blank if you don't want to change it.
+            .mb-3
+              = f.input :password, required: false, input_html: { autocomplete: "new-password", class: "form-control" }, label_html: { class: "form-label" }
+            .mb-3
+              = f.input :password_confirmation, required: false, input_html: { autocomplete: "new-password", class: "form-control" }, label_html: { class: "form-label" }
+            hr
+            .mb-3
+              = f.input :current_password, hint: "We need your current password to confirm changes", required: true, input_html: { autocomplete: "current-password", class: "form-control" }, label_html: { class: "form-label" }
+            .d-grid
+              = f.button :submit, "Update Profile", class: "btn btn-primary btn-lg"
+
+      / Cancel Account section
+      .card.shadow.mt-3.border-danger
+        .card-body.text-center
+          h6.text-danger Cancel Account
+          p.text-muted.small This action cannot be undone.
+          = button_to "Delete My Account", registration_path(resource_name), method: :delete, data: { turbo_confirm: "Are you sure? This cannot be undone." }, class: "btn btn-outline-danger btn-sm"

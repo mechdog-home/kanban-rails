@@ -1,0 +1,23 @@
+/ ============================================================================
+/ Devise: Forgot Password Page
+/ ============================================================================
+
+.container
+  .row.justify-content-center.mt-5
+    .col-md-6.col-lg-5
+      .card.shadow
+        .card-header.bg-primary.text-white.text-center
+          h4.mb-0
+            i.bi.bi-key.me-2
+            | Reset Password
+        .card-body.p-4
+          p.text-muted.mb-4 Enter your email and we'll send you instructions to reset your password.
+          = simple_form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post }) do |f|
+            = f.error_notification message: "Please fix the errors below:", class: "alert alert-danger"
+            .mb-3
+              = f.input :email, required: true, autofocus: true, input_html: { autocomplete: "email", class: "form-control" }, label_html: { class: "form-label" }
+            .d-grid
+              = f.button :submit, "Send Reset Instructions", class: "btn btn-primary btn-lg"
+
+        .card-footer.text-center.bg-light
+          = render "devise/shared/links"

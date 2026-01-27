@@ -34,7 +34,7 @@ html
       .navbar-brand i { font-size: 1.5rem; }
       .user-badge { font-size: 0.75rem; }
 
-  body
+  body.d-flex.flex-column.min-vh-100
     / Navigation
     nav.navbar.navbar-expand-lg.navbar-dark.bg-primary
       .container
@@ -97,11 +97,11 @@ html
           button.btn-close type="button" data-bs-dismiss="alert" aria-label="Close"
 
     / Main Content
-    main
+    main.flex-grow-1
       = yield
 
-    / Footer
-    footer.bg-light.py-3.mt-5
+    / Footer - mt-auto pushes it to the bottom when content is short
+    footer.bg-light.py-3.mt-auto
       .container.text-center.text-muted
         small
           | Kanban Rails &bull; Built with

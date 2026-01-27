@@ -1,0 +1,31 @@
+/ ============================================================================
+/ Devise: Sign In Page
+/ ============================================================================
+/
+/ Centered card layout with Bootstrap 5 styling.
+/ Uses simple_form for consistent form rendering.
+/
+/ ============================================================================
+
+.container
+  .row.justify-content-center.mt-5
+    .col-md-6.col-lg-5
+      .card.shadow
+        .card-header.bg-primary.text-white.text-center
+          h4.mb-0
+            i.bi.bi-box-arrow-in-right.me-2
+            | Sign In
+        .card-body.p-4
+          = simple_form_for(resource, as: resource_name, url: session_path(resource_name)) do |f|
+            .mb-3
+              = f.input :email, required: false, autofocus: true, input_html: { autocomplete: "email", class: "form-control" }, label_html: { class: "form-label" }
+            .mb-3
+              = f.input :password, required: false, input_html: { autocomplete: "current-password", class: "form-control" }, label_html: { class: "form-label" }
+            - if devise_mapping.rememberable?
+              .mb-3.form-check
+                = f.input :remember_me, as: :boolean, wrapper: false, input_html: { class: "form-check-input" }, label_html: { class: "form-check-label" }
+            .d-grid
+              = f.button :submit, "Sign In", class: "btn btn-primary btn-lg"
+
+        .card-footer.text-center.bg-light
+          = render "devise/shared/links"

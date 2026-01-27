@@ -1,0 +1,33 @@
+/ ============================================================================
+/ Devise: Sign Up Page
+/ ============================================================================
+/
+/ Centered card layout with Bootstrap 5 styling.
+/ Uses simple_form for consistent form rendering.
+/
+/ ============================================================================
+
+.container
+  .row.justify-content-center.mt-5
+    .col-md-6.col-lg-5
+      .card.shadow
+        .card-header.bg-primary.text-white.text-center
+          h4.mb-0
+            i.bi.bi-person-plus.me-2
+            | Create Account
+        .card-body.p-4
+          = simple_form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f|
+            = f.error_notification message: "Please fix the errors below:", class: "alert alert-danger"
+            .mb-3
+              = f.input :name, required: false, input_html: { autocomplete: "name", class: "form-control" }, label_html: { class: "form-label" }, placeholder: "Your display name"
+            .mb-3
+              = f.input :email, required: true, autofocus: true, input_html: { autocomplete: "email", class: "form-control" }, label_html: { class: "form-label" }
+            .mb-3
+              = f.input :password, required: true, hint: ("#{@minimum_password_length} characters minimum" if @minimum_password_length), input_html: { autocomplete: "new-password", class: "form-control" }, label_html: { class: "form-label" }
+            .mb-3
+              = f.input :password_confirmation, required: true, input_html: { autocomplete: "new-password", class: "form-control" }, label_html: { class: "form-label" }
+            .d-grid
+              = f.button :submit, "Sign Up", class: "btn btn-primary btn-lg"
+
+        .card-footer.text-center.bg-light
+          = render "devise/shared/links"
