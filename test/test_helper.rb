@@ -34,3 +34,25 @@ module ActiveSupport
     # Add more helper methods to be used by all tests here...
   end
 end
+
+# ============================================================================
+# Devise Integration Test Helper
+# ============================================================================
+#
+# LEARNING NOTES:
+#
+# Devise provides test helpers for signing in/out during tests.
+# For integration tests (controller tests that use get/post/etc.),
+# we include Devise::Test::IntegrationHelpers.
+#
+# This lets us call `sign_in(user)` before making requests,
+# simulating an authenticated session.
+#
+# Without this, any controller with `before_action :authenticate_user!`
+# will redirect to the login page, and tests will fail with 302s.
+#
+# ============================================================================
+
+class ActionDispatch::IntegrationTest
+  include Devise::Test::IntegrationHelpers
+end

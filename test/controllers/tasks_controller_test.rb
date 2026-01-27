@@ -27,6 +27,17 @@ class TasksControllerTest < ActionDispatch::IntegrationTest
   # ==========================================================================
 
   setup do
+    # Create a test user and sign in before each test
+    # Without this, Devise redirects all requests to the login page (302)
+    @user = User.create!(
+      email: "test@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      name: "Test User",
+      role: "user"
+    )
+    sign_in @user
+
     # Create a test task before each test
     @task = Task.create!(
       title: "Test Task",
