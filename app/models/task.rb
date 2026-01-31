@@ -149,11 +149,33 @@ class Task < ApplicationRecord
     priority == 'urgent'
   end
   
-  # Move task to next status in workflow
+  # Move task to next status in workflow (right arrow)
   def advance_status!
     current_index = STATUSES.index(status)
     return if current_index.nil? || current_index >= STATUSES.length - 1
     
     update!(status: STATUSES[current_index + 1])
+  end
+  
+  # Move task to previous status in workflow (left arrow)
+  def regress_status!
+    current_index = STATUSES.index(status)
+    return if current_index.nil? || current_index <= 0
+    
+    update!(status: STATUSES[current_index - 1])
+  end
+  
+  # Get the next status without changing it
+  def next_status
+    current_index = STATUSES.index(status)
+    return nil if current_index.nil? || current_index >= STATUSES.length - 1
+    STATUSES[current_index + 1]
+  end
+  
+  # Get the previous status without changing it
+  def previous_status
+    current_index = STATUSES.index(status)
+    return nil if current_index.nil? || current_index <= 0
+    STATUSES[current_index - 1]
   end
 end

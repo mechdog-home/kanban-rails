@@ -40,7 +40,15 @@ Rails.application.routes.draw do
   end
   
   # HTML routes for the Kanban board interface
-  resources :tasks
+  resources :tasks do
+    # Member routes for task actions
+    # POST /tasks/:id/move_left  -> moves to previous status
+    # POST /tasks/:id/move_right -> moves to next status
+    member do
+      post :move_left
+      post :move_right
+    end
+  end
   
   # User management (super_admin only, enforced by Pundit)
   resources :users

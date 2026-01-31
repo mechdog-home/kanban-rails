@@ -42,7 +42,8 @@ class TasksController < ApplicationController
   before_action :authenticate_user!, unless: -> { request.format.json? }
   
   # Find the task before show, update, and destroy actions
-  before_action :set_task, only: [:show, :edit, :update, :destroy]
+  # Added :move_left and :move_right for status transitions
+  before_action :set_task, only: [:show, :edit, :update, :destroy, :move_left, :move_right]
   
   # Authorize with Pundit (for HTML requests with a logged-in user)
   after_action :verify_authorized, except: :index, unless: -> { request.format.json? }
@@ -187,6 +188,133 @@ class TasksController < ApplicationController
     respond_to do |format|
       format.html { redirect_to tasks_path, notice: 'Task was successfully deleted.' }
       format.json { head :no_content }
+    end
+  end
+
+  # ==========================================================================
+  # POST /tasks/:id/move_left
+  # ==========================================================================
+  #
+  # Move task to previous status in workflow.
+  # Used by left arrow button on task cards.
+  #
+  # LEARNING NOTES - RAILS AJAX PATTERNS:
+  # -------------------------------------
+  # Rails has multiple ways to handle AJAX:
+  #
+  # 1. RAILS UJS (Unobtrusive JavaScript):
+  #    - Add data: { turbo: true } to link_to or button_to
+  #    - Rails automatically converts to AJAX
+  #    - Response is a Turbo Stream that updates the page
+  #
+  # 2. TURBO FRAMES:
+  #    - Wrap content in <%= turbo_frame_tag ... %>
+  #    - Links/forms within frame update just that frame
+  #
+  # 3. TURBO STREAMS (used here):
+  #    - Controller returns turbo_stream responses
+  #    - Server sends HTML fragments, Turbo updates DOM
+  #
+  # COMPARISON TO NODE.JS/FETCH:
+  # ----------------------------
+  # Express/Vanilla approach:
+  #   fetch(`/api/tasks/${id}`, { method: 'PUT', body: JSON.stringify({status}) })
+  #     .then(res => res.json())
+  #     .then(data => {
+  #       // Manually update DOM
+  #       document.getElementById(`task-${id}`).remove()
+  #       // Add to new column...
+  #     })
+  #
+  # Rails/Turbo approach:
+  #   button_to '←', move_left_task_path(task), method: :post
+  #   // Controller returns turbo_stream.replace ...
+  #   // Turbo automatically updates the DOM - no JS needed!
+  #
+  def move_left
+    authorize @task unless request.format.json?
+    
+    previous = @task.previous_status
+    
+    if previous && @task.update(status: previous)
+      respond_to do |format|
+        # Turbo Stream response - updates the page automatically
+        format.turbo_stream do
+          render turbo_stream: [
+            # Remove task from current column
+            turbo_stream.remove(@task),
+            # Add task to new column (at the top)
+            turbo_stream.prepend(
+              "column_#{@task.assignee}_#{@task.status}",
+              partial: 'tasks/task_card',
+              locals: { task: @task }
+            ),
+            # Update column counts
+            turbo_stream.update(
+              "count_#{@task.assignee}_#{@task.status}",
+              Task.for_assignee(@task.assignee).with_status(@task.status).count.to_s
+            ),
+            turbo_stream.update(
+              "count_#{@task.assignee}_#{previous}",
+              Task.for_assignee(@task.assignee).with_status(previous).count.to_s
+            )
+          ]
+        end
+        format.html { redirect_to tasks_path, notice: 'Task moved.' }
+        format.json { render json: @task }
+      end
+    else
+      respond_to do |format|
+        format.html { redirect_to tasks_path, alert: 'Cannot move task further left.' }
+        format.json { render json: { error: 'Cannot move task further left' }, status: :unprocessable_entity }
+      end
+    end
+  end
+
+  # ==========================================================================
+  # POST /tasks/:id/move_right
+  # ==========================================================================
+  #
+  # Move task to next status in workflow.
+  # Used by right arrow button on task cards.
+  #
+  def move_right
+    authorize @task unless request.format.json?
+    
+    next_stat = @task.next_status
+    
+    if next_stat && @task.update(status: next_stat)
+      respond_to do |format|
+        # Turbo Stream response - updates the page automatically
+        format.turbo_stream do
+          render turbo_stream: [
+            # Remove task from current column
+            turbo_stream.remove(@task),
+            # Add task to new column (at the top)
+            turbo_stream.prepend(
+              "column_#{@task.assignee}_#{@task.status}",
+              partial: 'tasks/task_card',
+              locals: { task: @task }
+            ),
+            # Update column counts
+            turbo_stream.update(
+              "count_#{@task.assignee}_#{@task.status}",
+              Task.for_assignee(@task.assignee).with_status(@task.status).count.to_s
+            ),
+            turbo_stream.update(
+              "count_#{@task.assignee}_#{next_stat}",
+              Task.for_assignee(@task.assignee).with_status(next_stat).count.to_s
+            )
+          ]
+        end
+        format.html { redirect_to tasks_path, notice: 'Task moved.' }
+        format.json { render json: @task }
+      end
+    else
+      respond_to do |format|
+        format.html { redirect_to tasks_path, alert: 'Cannot move task further right.' }
+        format.json { render json: { error: 'Cannot move task further right' }, status: :unprocessable_entity }
+      end
     end
   end
 

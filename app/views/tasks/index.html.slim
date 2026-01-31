@@ -226,7 +226,8 @@
             / data-sortable-target="column" → Stimulus finds this element
             / data-status → tells JS what status to assign on drop
             / data-assignee → tells JS what assignee to assign on drop
-            .kanban-column.p-3 data-sortable-target="column" data-status=status data-assignee=assignee
+            / id="column_assignee_status" → Used by Turbo Streams to target this column
+            .kanban-column.p-3 id="column_#{assignee}_#{status}" data-sortable-target="column" data-status=status data-assignee=assignee
 
               / ---- Column header with status name & count ----
               .d-flex.justify-content-between.align-items-center.mb-3
@@ -246,42 +247,26 @@
                     i.bi.bi-check-circle.me-1
                   = status.titleize.gsub("_", " ")
                 / column-count class is used by JS to update the number
-                span.badge.rounded-pill class="bg-#{status_color(status)}"
+                / id="count_assignee_status" → Used by Turbo Streams to update count
+                span.badge.rounded-pill class="bg-#{status_color(status)}" id="count_#{assignee}_#{status}"
                   span.column-count = @tasks.for_assignee(assignee).with_status(status).count
 
               / ---- Task cards ----
               /
-              / LEARNING NOTE: Each card has:
-              /   data-id       → task ID (read by JS for API calls)
-              /   data-status   → current status (for JS reference)
-              /   data-controller="task" → separate Stimulus controller for
-              /                            delete and other card-level actions
-              /   data-task-id-value → passes task ID to the task controller
-              /   id="task_123" → unique DOM ID (for Turbo Stream targeting)
+              / LEARNING NOTE: We now use the _task_card partial for rendering.
+              / This partial is also used by Turbo Streams when moving cards,
+              / ensuring consistent rendering everywhere.
               /
-              / The priority-#{priority} class adds a colored left border.
+              / The partial includes:
+              / - Task title and description
+              / - Priority badge
+              / - Move buttons (left/right arrows)
+              / - Edit and delete buttons
+              /
+              / TURBO STREAM NOTE:
+              / When a task moves via move_left/move_right, the controller
+              / renders this partial and sends it as a Turbo Stream response.
+              / The card is removed from old column and added to new column.
               /
               - @tasks.for_assignee(assignee).with_status(status).each do |task|
-                .card.task-card.mb-2 id="task_#{task.id}" class="priority-#{task.priority}" data-id=task.id data-status=task.status data-controller="task" data-task-id-value=task.id
-                  .card-body.p-2
-                    / Task title
-                    h6.card-title.mb-1.small.fw-bold = task.title
-
-                    / Task description (truncated)
-                    - if task.description.present?
-                      p.card-text.small.text-muted.mb-1
-                        = truncate(task.description, length: 60)
-
-                    / Footer: priority badge + action buttons
-                    .d-flex.justify-content-between.align-items-center
-                      span.badge.rounded-pill class="bg-#{priority_color(task.priority)}"
-                        = task.priority
-
-                      .btn-group.btn-group-sm
-                        / Edit button — Turbo Drive handles navigation
-                        = link_to edit_task_path(task), class: "btn btn-outline-secondary btn-sm" do
-                          i.bi.bi-pencil
-
-                        / Delete button — handled by task Stimulus controller
-                        button.btn.btn-outline-danger.btn-sm type="button" data-action="click->task#delete"
-                          i.bi.bi-trash
+                = render 'tasks/task_card', task: task

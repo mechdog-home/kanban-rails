@@ -1,0 +1,115 @@
+/ ============================================================================
+/ Partial: Task Card
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This partial renders a single task card with move buttons.
+/ It's used by:
+/ 1. Initial page render (kanban board)
+/ 2. Turbo Stream updates when moving cards between columns
+/
+/ TURBO STREAMS AND PARTIALS:
+/ ---------------------------
+/ When a task moves, the controller renders this partial and sends it
+/ as a Turbo Stream response. The browser automatically:
+/ 1. Removes the card from the old column
+/ 2. Inserts this partial into the new column
+/ 3. Updates column counts
+/
+/ RAILS UJS/TURBO FOR AJAX:
+/ -------------------------
+/ Instead of writing JavaScript like:
+/   fetch('/tasks/123/move_right', { method: 'POST' })
+/
+/ We use Rails button_to helper with Turbo:
+/   = button_to move_right_task_path(task), method: :post
+/
+/ This generates:
+/   <form action="/tasks/123/move_right" method="post" data-turbo="true">
+/     <button type="submit">→</button>
+/   </form>
+/
+/ Turbo intercepts the form submission, makes the AJAX request,
+/ and processes the Turbo Stream response automatically!
+/
+/ COMPARISON TO NODE.JS:
+/ ----------------------
+/ Express approach:
+/   // Frontend JavaScript
+/   async function moveTask(taskId, direction) {
+/     const res = await fetch(`/api/tasks/${taskId}`, {
+/       method: 'PUT',
+/       body: JSON.stringify({ status: newStatus })
+/     })
+/     const task = await res.json()
+/     // Manually move DOM element
+/     document.getElementById(`task-${taskId}`).remove()
+/     // Add to new column...
+/   }
+/
+/ Rails approach:
+/   = button_to '→', move_right_task_path(task), method: :post
+/   // That's it! Turbo handles AJAX and DOM updates.
+/
+/ MOVE BUTTONS LOGIC:
+/ ------------------
+/ Left button is disabled if task is at first status (no previous)
+/ Right button is disabled if task is at last status (no next)
+/ This prevents invalid state transitions.
+/
+/ ============================================================================
+
+/ Task card container
+/ id="task_#{task.id}" is used by Turbo Streams to target this element
+data-id=task.id data-status=task.status data-assignee=task.assignee
+.card.task-card.mb-2 id="task_#{task.id}" class="priority-#{task.priority}" 
+  .card-body.p-2
+    / Task title
+    h6.card-title.mb-1.small.fw-bold = task.title
+
+    / Task description (truncated)
+    - if task.description.present?
+      p.card-text.small.text-muted.mb-1
+        = truncate(task.description, length: 60)
+
+    / Footer: priority badge + action buttons
+    .d-flex.justify-content-between.align-items-center.mt-2
+      span.badge.rounded-pill class="bg-#{priority_color(task.priority)}"
+        = task.priority
+
+      / Action buttons group
+      .btn-group.btn-group-sm
+        / Left arrow - move to previous status
+        / Disabled if at first status (can't move left)
+        - if task.previous_status
+          = button_to move_left_task_path(task), 
+            method: :post,
+            class: "btn btn-outline-secondary btn-sm",
+            title: "Move to #{task.previous_status.titleize}",
+            form: { data: { turbo: true } } do
+            i.bi.bi-arrow-left
+        - else
+          button.btn.btn-outline-secondary.btn-sm type="button" disabled="true" title="Cannot move further left"
+            i.bi.bi-arrow-left
+        
+        / Right arrow - move to next status
+        / Disabled if at last status (can't move right)
+        - if task.next_status
+          = button_to move_right_task_path(task), 
+            method: :post,
+            class: "btn btn-outline-primary btn-sm",
+            title: "Move to #{task.next_status.titleize}",
+            form: { data: { turbo: true } } do
+            i.bi.bi-arrow-right
+        - else
+          button.btn.btn-outline-primary.btn-sm type="button" disabled="true" title="Cannot move further right"
+            i.bi.bi-arrow-right
+        
+        / Edit button — Turbo Drive handles navigation
+        = link_to edit_task_path(task), class: "btn btn-outline-secondary btn-sm" do
+          i.bi.bi-pencil
+
+        / Delete button — handled by task Stimulus controller
+        button.btn.btn-outline-danger.btn-sm type="button" data-controller="task" data-action="click->task#delete" data-task-id-value=task.id
+          i.bi.bi-trash
