@@ -265,6 +265,11 @@ class TasksController < ApplicationController
       end
     else
       respond_to do |format|
+        # Turbo Stream error - just return success with no changes
+        # The UI can detect no change occurred
+        format.turbo_stream do
+          render turbo_stream: []
+        end
         format.html { redirect_to tasks_path, alert: 'Cannot move task further left.' }
         format.json { render json: { error: 'Cannot move task further left' }, status: :unprocessable_entity }
       end
@@ -312,6 +317,11 @@ class TasksController < ApplicationController
       end
     else
       respond_to do |format|
+        # Turbo Stream error - just return success with no changes
+        # The UI can detect no change occurred
+        format.turbo_stream do
+          render turbo_stream: []
+        end
         format.html { redirect_to tasks_path, alert: 'Cannot move task further right.' }
         format.json { render json: { error: 'Cannot move task further right' }, status: :unprocessable_entity }
       end
@@ -349,5 +359,79 @@ class TasksController < ApplicationController
   rescue ActionController::ParameterMissing
     # Allow params without :task wrapper for API convenience
     params.permit(:title, :description, :assignee, :status, :priority)
+  end
+
+  # ==========================================================================
+  # Helper: Fetch Sparky Status for View
+  # ==========================================================================
+  #
+  # This helper makes Sparky status available to views.
+  # It's called by the index view to render the status card.
+  #
+  helper_method :fetch_sparky_status
+  def fetch_sparky_status
+    # Call the Sparky Status API internally
+    # In production, you might cache this
+    begin
+      # Get current task (sprint or in_progress assigned to sparky)
+      sprint_task = Task.for_assignee('sparky').with_status('sprint').first
+      in_progress_task = Task.for_assignee('sparky').with_status('in_progress').first
+      
+      current_task = nil
+      status = 'idle'
+      
+      if sprint_task
+        current_task = {
+          id: sprint_task.id,
+          title: sprint_task.title,
+          description: sprint_task.description,
+          status: sprint_task.status,
+          priority: sprint_task.priority
+        }
+        status = 'sprint'
+      elsif in_progress_task
+        current_task = {
+          id: in_progress_task.id,
+          title: in_progress_task.title,
+          description: in_progress_task.description,
+          status: in_progress_task.status,
+          priority: in_progress_task.priority
+        }
+        status = 'in_progress'
+      end
+      
+      # Read usage log for context data
+      log_path = Rails.root.join('..', 'memory', 'usage-log.json')
+      context_percent = 0
+      model = 'moonshot/kimi-k2.5'
+      
+      if File.exist?(log_path)
+        data = JSON.parse(File.read(log_path))
+        sessions = data['sessions'] || []
+        last_session = sessions.last || {}
+        context_percent = last_session['context_pct'] || 0
+        model = last_session['model'] || 'moonshot/kimi-k2.5'
+      end
+      
+      {
+        timestamp: Time.current.iso8601,
+        is_active: current_task.present?,
+        status: status,
+        current_task: current_task,
+        context_percent: context_percent,
+        model: model
+      }
+    rescue => e
+      Rails.logger.error("Error fetching Sparky status: #{e.message}")
+      # Return default status on error
+      {
+        timestamp: Time.current.iso8601,
+        is_active: false,
+        status: 'idle',
+        current_task: nil,
+        context_percent: 0,
+        model: 'unknown'
+      }
+    end
   end
 end

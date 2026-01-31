@@ -62,8 +62,9 @@
 
 / Task card container
 / id="task_#{task.id}" is used by Turbo Streams to target this element
-data-id=task.id data-status=task.status data-assignee=task.assignee
-.card.task-card.mb-2 id="task_#{task.id}" class="priority-#{task.priority}" 
+/ data-* attributes are used by JavaScript for drag-and-drop and other client-side features
+/ Note: In Slim, attributes must be on the same line as the element or properly indented
+.card.task-card.mb-2 id="task_#{task.id}" class="priority-#{task.priority}" data-id=task.id data-status=task.status data-assignee=task.assignee 
   .card-body.p-2
     / Task title
     h6.card-title.mb-1.small.fw-bold = task.title
@@ -71,45 +72,36 @@ data-id=task.id data-status=task.status data-assignee=task.assignee
     / Task description (truncated)
     - if task.description.present?
       p.card-text.small.text-muted.mb-1
-        = truncate(task.description, length: 60)
+        = truncate(task.description, length: 50)
 
-    / Footer: priority badge + action buttons
-    .d-flex.justify-content-between.align-items-center.mt-2
-      span.badge.rounded-pill class="bg-#{priority_color(task.priority)}"
-        = task.priority
-
-      / Action buttons group
-      .btn-group.btn-group-sm
-        / Left arrow - move to previous status
-        / Disabled if at first status (can't move left)
+    / Compact action bar: Move arrows + Edit/Delete
+    .d-flex.justify-content-between.align-items-center.mt-2.gap-1
+      / Move arrows - compact side by side
+      .btn-group.btn-group-sm style="flex-shrink: 0;"
         - if task.previous_status
-          = button_to move_left_task_path(task), 
-            method: :post,
-            class: "btn btn-outline-secondary btn-sm",
-            title: "Move to #{task.previous_status.titleize}",
-            form: { data: { turbo: true } } do
-            i.bi.bi-arrow-left
+          = button_to move_left_task_path(task), method: :post, class: "btn btn-outline-secondary py-0 px-1", title: "← #{task.previous_status.titleize}", form: { data: { turbo: true }, class: "d-inline" } do
+            i.bi.bi-chevron-left.small
         - else
-          button.btn.btn-outline-secondary.btn-sm type="button" disabled="true" title="Cannot move further left"
-            i.bi.bi-arrow-left
+          button.btn.btn-outline-secondary.py-0.px-1 type="button" disabled=true
+            i.bi.bi-chevron-left.small
         
-        / Right arrow - move to next status
-        / Disabled if at last status (can't move right)
         - if task.next_status
-          = button_to move_right_task_path(task), 
-            method: :post,
-            class: "btn btn-outline-primary btn-sm",
-            title: "Move to #{task.next_status.titleize}",
-            form: { data: { turbo: true } } do
-            i.bi.bi-arrow-right
+          = button_to move_right_task_path(task), method: :post, class: "btn btn-outline-primary py-0 px-1", title: "#{task.next_status.titleize} →", form: { data: { turbo: true }, class: "d-inline" } do
+            i.bi.bi-chevron-right.small
         - else
-          button.btn.btn-outline-primary.btn-sm type="button" disabled="true" title="Cannot move further right"
-            i.bi.bi-arrow-right
-        
-        / Edit button — Turbo Drive handles navigation
-        = link_to edit_task_path(task), class: "btn btn-outline-secondary btn-sm" do
-          i.bi.bi-pencil
-
-        / Delete button — handled by task Stimulus controller
-        button.btn.btn-outline-danger.btn-sm type="button" data-controller="task" data-action="click->task#delete" data-task-id-value=task.id
-          i.bi.bi-trash
+          button.btn.btn-outline-primary.py-0.px-1 type="button" disabled=true
+            i.bi.bi-chevron-right.small
+      
+      / Spacer
+      .flex-grow-1
+      
+      / Priority badge
+      span.badge.rounded-pill style="font-size: 0.65rem;" class="bg-#{priority_color(task.priority)}"
+        = task.priority[0].upcase
+      
+      / Edit/Delete - smaller icons
+      .btn-group.btn-group-sm style="flex-shrink: 0;"
+        = link_to edit_task_path(task), class: "btn btn-outline-secondary py-0 px-1", title: "Edit" do
+          i.bi.bi-pencil.small
+        button.btn.btn-outline-danger.py-0.px-1 type="button" data-controller="task" data-action="click->task#delete" data-task-id-value=task.id title="Delete"
+          i.bi.bi-trash.small

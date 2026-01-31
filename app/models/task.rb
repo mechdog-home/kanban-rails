@@ -40,7 +40,8 @@ class Task < ApplicationRecord
   
   # Valid workflow statuses for a task
   # These match the columns on our Kanban board
-  STATUSES = %w[sprint daily backlog in_progress hold done].freeze
+  # Order matters for next_status/previous_status methods!
+  STATUSES = %w[hold backlog in_progress sprint daily done].freeze
   
   # Valid priority levels
   PRIORITIES = %w[low medium high urgent].freeze

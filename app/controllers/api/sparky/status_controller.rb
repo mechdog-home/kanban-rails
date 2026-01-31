@@ -171,8 +171,8 @@ module Api
       # Determine Sparky's status based on current task
       def determine_status(current_task)
         return 'idle' unless current_task
-        return 'sprint' if current_task[:status] == 'sprint'
-        'working'
+        # Return the actual task status so tests match
+        current_task[:status]
       end
       
       # ==========================================================================

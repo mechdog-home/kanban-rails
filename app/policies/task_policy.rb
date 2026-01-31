@@ -54,6 +54,18 @@ class TaskPolicy < ApplicationPolicy
     record.user == user || record.user.nil?
   end
 
+  # Can the user move task left (to previous status)?
+  def move_left?
+    # Any logged-in user can move tasks
+    user.present?
+  end
+
+  # Can the user move task right (to next status)?
+  def move_right?
+    # Any logged-in user can move tasks
+    user.present?
+  end
+
   # -------------------------------------------------------------------------
   # Scope: Which tasks can this user see?
   # -------------------------------------------------------------------------

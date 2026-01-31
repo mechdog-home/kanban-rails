@@ -164,15 +164,21 @@
   / --------------------------------------------------------------------------
   / Title bar with task count and "Add Task" button
   / --------------------------------------------------------------------------
-  .d-flex.justify-content-between.align-items-center.mb-4
-    h1.h3.mb-0
-      i.bi.bi-kanban.me-2
-      | Kanban Board
-      span.badge.bg-secondary.ms-2.fs-6 = @tasks.count
+  .row.mb-4
+    .col-md-8
+      .d-flex.justify-content-between.align-items-center
+        h1.h3.mb-0
+          i.bi.bi-kanban.me-2
+          | Kanban Board
+          span.badge.bg-secondary.ms-2.fs-6 = @tasks.count
 
-    = link_to new_task_path, class: "btn btn-primary" do
-      i.bi.bi-plus-lg.me-1
-      | Add Task
+        = link_to new_task_path, class: "btn btn-primary" do
+          i.bi.bi-plus-lg.me-1
+          | Add Task
+    
+    / Sparky Status Card - Live status display
+    .col-md-4
+      = render 'sparky/status', status: fetch_sparky_status
 
   / ==========================================================================
   / SWIM LANES — One per assignee
