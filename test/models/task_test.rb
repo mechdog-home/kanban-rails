@@ -226,7 +226,10 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal "in_progress", task.status
     
     task.advance_status!
-    assert_equal "review", task.status
+    assert_equal "sprint", task.status
+    
+    task.advance_status!
+    assert_equal "daily", task.status
     
     task.advance_status!
     assert_equal "done", task.status
