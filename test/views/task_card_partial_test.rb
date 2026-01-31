@@ -99,9 +99,9 @@ class TaskCardPartialTest < ActionView::TestCase
   test "_task_card partial has move buttons" do
     render partial: "tasks/task_card", locals: { task: @task }
     
-    # Should have left and right arrow buttons
-    assert_includes rendered, "bi-arrow-left"
-    assert_includes rendered, "bi-arrow-right"
+    # Should have left and right chevron buttons (compact icons)
+    assert_includes rendered, "bi-chevron-left"
+    assert_includes rendered, "bi-chevron-right"
   end
 
   test "_task_card partial has edit button" do
