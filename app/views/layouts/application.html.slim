@@ -59,6 +59,33 @@ html
                   | Users
           
           ul.navbar-nav
+            / Theme Toggle Button
+            / ============================================================================
+            / LEARNING NOTES - STIMULUS DATA-ACTION:
+            /
+            / data-controller="theme" on a parent element activates the Stimulus controller
+            / data-action="click->theme#toggle" wires the click event to the toggle() method
+            /
+            / This is Stimulus's "HTML-first" approach:
+            / 1. Write HTML with data attributes describing behavior
+            / 2. Stimulus automatically connects controllers when elements appear
+            / 3. Actions are declared inline, keeping JS and HTML in sync
+            /
+            / COMPARISON TO NODE.JS/VANILLA JS:
+            / Express app would typically:
+            /   <button id="theme-toggle">Toggle</button>
+            /   document.getElementById('theme-toggle').addEventListener('click', ...)
+            /
+            / Rails with Stimulus:
+            /   <button data-action="click->theme#toggle">Toggle</button>
+            /   // No separate querySelector needed - Stimulus handles it!
+            /
+            / The controller is already in theme_controller.js
+            / ============================================================================
+            li.nav-item.me-2 data-controller="theme"
+              button.btn.btn-outline-light.btn-sm.nav-link type="button" data-action="click->theme#toggle" title="Toggle Dark/Light Theme"
+                i.bi.bi-moon-fill data-theme-target="icon"
+            
             - if user_signed_in?
               li.nav-item.dropdown
                 a.nav-link.dropdown-toggle href="#" data-bs-toggle="dropdown"
