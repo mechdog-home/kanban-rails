@@ -26,11 +26,16 @@
       i.bi.bi-lightning-charge-fill.me-2 class=(status[:is_active] ? 'text-warning' : 'text-muted')
       strong Sparky Status
     
-    / Status badge
-    - if status[:is_active]
-      span.badge.bg-warning.text-dark Animated
-    - else
-      span.badge.bg-secondary Idle
+    .d-flex.align-items-center.gap-2
+      / Refresh button - manual update
+      button.btn.btn-sm.btn-outline-secondary.py-0.px-1 type="button" data-action="click->sparky-status#refresh" title="Refresh now"
+        i.bi.bi-arrow-clockwise.small
+      
+      / Status badge
+      - if status[:is_active]
+        span.badge.bg-warning.text-dark Animated
+      - else
+        span.badge.bg-secondary Idle
   
   .card-body
     .row.g-3
