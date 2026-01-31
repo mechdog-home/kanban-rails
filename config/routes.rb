@@ -25,7 +25,18 @@ Rails.application.routes.draw do
   # API namespace for JSON endpoints
   # This creates routes like /api/tasks
   namespace :api do
+    # Task resource routes (standard RESTful)
     resources :tasks, only: [:index, :show, :create, :update, :destroy]
+    
+    # Stats endpoint - matches Node.js /api/stats
+    # get 'stats', to: 'tasks#stats' creates GET /api/stats
+    get 'stats', to: 'tasks#stats'
+    
+    # Sparky status endpoint - matches Node.js /api/sparky/status
+    # We'll create this controller next
+    namespace :sparky do
+      get 'status', to: 'status#show'
+    end
   end
   
   # HTML routes for the Kanban board interface

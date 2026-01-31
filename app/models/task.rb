@@ -40,7 +40,7 @@ class Task < ApplicationRecord
   
   # Valid workflow statuses for a task
   # These match the columns on our Kanban board
-  STATUSES = %w[backlog in_progress review done].freeze
+  STATUSES = %w[sprint daily backlog in_progress hold done].freeze
   
   # Valid priority levels
   PRIORITIES = %w[low medium high urgent].freeze
@@ -88,14 +88,20 @@ class Task < ApplicationRecord
   # Usage: Task.with_priority('high')
   scope :with_priority, ->(priority) { where(priority: priority) }
   
+  # Get tasks in sprint (priority queue)
+  scope :sprint, -> { with_status('sprint') }
+  
+  # Get daily tasks
+  scope :daily, -> { with_status('daily') }
+  
   # Get tasks in backlog
   scope :backlog, -> { with_status('backlog') }
   
   # Get tasks in progress
   scope :in_progress, -> { with_status('in_progress') }
   
-  # Get tasks in review
-  scope :in_review, -> { with_status('review') }
+  # Get tasks on hold
+  scope :hold, -> { with_status('hold') }
   
   # Get completed tasks
   scope :done, -> { with_status('done') }

@@ -18,6 +18,12 @@
 # - POST   /api/tasks          -> Create task
 # - PATCH  /api/tasks/:id      -> Update task
 # - DELETE /api/tasks/:id      -> Delete task
+# - GET    /api/stats          -> Get task statistics (counts by assignee/status)
+#
+# COMPARISON TO EXPRESS/NODE.JS:
+# - Express: app.get('/api/stats', (req, res) => { ... })
+# - Rails:  def stats ... render json: stats end
+# - Both use similar logic, but Rails organizes by controller action
 #
 # ============================================================================
 
@@ -27,7 +33,63 @@ module Api
     skip_before_action :verify_authenticity_token
     
     # Find task before show, update, destroy
+    # Note: stats doesn't need set_task, so it's not in this list
     before_action :set_task, only: [:show, :update, :destroy]
+
+    # ========================================================================
+    # GET /api/stats
+    # ========================================================================
+    #
+    # Returns summary statistics for the dashboard.
+    # Matches the Node.js /api/stats endpoint format.
+    #
+    # Response format:
+    # {
+    #   "total": 42,
+    #   "byAssignee": {
+    #     "mechdog": 20,
+    #     "sparky": 22
+    #   },
+    #   "byStatus": {
+    #     "sprint": 5,
+    #     "daily": 3,
+    #     "backlog": 10,
+    #     "in_progress": 8,
+    #     "hold": 2,
+    #     "done": 14
+    #   }
+    # }
+    #
+    # LEARNING NOTES:
+    # - Rails uses ActiveRecord's count method for aggregation
+    # - group(:column).count returns a hash: { 'value' => count }
+    # - We use transform_keys to ensure consistent key types
+    #
+    # COMPARISON TO EXPRESS/NODE.JS:
+    # - Express: db.prepare('SELECT COUNT(*)...').get().count
+    # - Rails:  Task.count and Task.group(:status).count
+    # - Rails abstracts the SQL, making it more readable
+    #
+    def stats
+      # Build stats hash matching Node.js format
+      stats = {
+        total: Task.count,
+        byAssignee: {
+          mechdog: Task.for_assignee('mechdog').count,
+          sparky: Task.for_assignee('sparky').count
+        },
+        byStatus: {
+          sprint: Task.with_status('sprint').count,
+          daily: Task.with_status('daily').count,
+          backlog: Task.with_status('backlog').count,
+          in_progress: Task.with_status('in_progress').count,
+          hold: Task.with_status('hold').count,
+          done: Task.with_status('done').count
+        }
+      }
+      
+      render json: stats
+    end
 
     # ========================================================================
     # GET /api/tasks

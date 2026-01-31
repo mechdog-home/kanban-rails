@@ -23,20 +23,20 @@ puts "Seeding users..."
 mechdog = User.find_or_create_by!(username: "mechdog") do |u|
   u.name = "MechDog"
   u.email = "mechdog@kanban.local"
-  u.password = "changeme123"
-  u.password_confirmation = "changeme123"
+  u.password = "pass6767"
+  u.password_confirmation = "pass6767"
   u.role = "super_admin"
 end
-puts "  ✓ mechdog (super_admin) — password: changeme123"
+puts "  ✓ mechdog (super_admin) — password: pass6767"
 
 sparky = User.find_or_create_by!(username: "sparky") do |u|
   u.name = "Sparky"
   u.email = "sparky@kanban.local"
-  u.password = "changeme123"
-  u.password_confirmation = "changeme123"
+  u.password = "pass6767"
+  u.password_confirmation = "pass6767"
   u.role = "admin"
 end
-puts "  ✓ sparky (admin) — password: changeme123"
+puts "  ✓ sparky (admin) — password: pass6767"
 
 puts ""
 puts "Seeding tasks..."
