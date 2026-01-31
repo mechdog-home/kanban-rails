@@ -1,0 +1,70 @@
+/ ============================================================================
+/ Partial: Sparky Status Display
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This partial renders Sparky's current status card.
+/ It's used both for:
+/ 1. Initial page load (rendered with the full page)
+/ 2. Turbo Stream updates (replaces existing element via WebSocket/polling)
+/
+/ TURBO STREAM MAGIC:
+/ When the server sends a Turbo Stream with action="replace" and
+/ target="sparky-status", this partial's output replaces the
+/ existing element with id="sparky-status" automatically!
+/
+/ STIMULUS INTEGRATION:
+/ The data-controller="sparky-status" connects this element to
+/ our Stimulus controller for periodic polling or WebSocket handling.
+/
+/ ============================================================================
+
+#sparky-status.card class=(status[:is_active] ? 'border-warning' : 'border-secondary') data-controller="sparky-status" data-sparky-status-url-value="/api/sparky/status"
+  .card-header.d-flex.justify-content-between.align-items-center
+    .d-flex.align-items-center
+      i.bi.bi-lightning-charge-fill.me-2 class=(status[:is_active] ? 'text-warning' : 'text-muted')
+      strong Sparky Status
+    
+    / Status badge
+    - if status[:is_active]
+      span.badge.bg-warning.text-dark Animated
+    - else
+      span.badge.bg-secondary Idle
+  
+  .card-body
+    .row.g-3
+      / Context Usage
+      .col-6
+        .small.text-muted Context Usage
+        .d-flex.align-items-center
+          .progress.flex-grow-1.me-2 style="height: 8px;"
+            - percent = status[:context_percent] || 0
+            - bar_class = percent > 80 ? 'bg-danger' : (percent > 50 ? 'bg-warning' : 'bg-success')
+            .progress-bar class=bar_class style="width: #{percent}%"
+          span.small #{percent}%
+      
+      / Model
+      .col-6
+        .small.text-muted Model
+        .small.text-truncate = status[:model]&.split('/')&.last || 'Unknown'
+      
+      / Current Task
+      - if status[:current_task]
+        .col-12
+          .small.text-muted Current Task
+          .small.fw-bold.text-truncate = status[:current_task][:title]
+          .small.text-muted = status[:current_task][:status]&.titleize
+      
+      / Last Updated
+      .col-12.text-end
+        .small.text-muted
+          i.bi.bi-clock.me-1
+          = time_ago_in_words(status[:timestamp]) rescue "just now"
+          |  ago
+  
+  / Hidden data for Stimulus controller
+  / These data attributes pass server data to JavaScript
+  span.d-none data-sparky-status-context-percent-value=status[:context_percent]
+  span.d-none data-sparky-status-model-value=status[:model]
+  span.d-none data-sparky-status-active-value=status[:is_active]
