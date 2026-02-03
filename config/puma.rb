@@ -32,6 +32,11 @@ threads threads_count, threads_count
 # Default changed to 6767 to avoid conflicts with other Rails apps.
 port ENV.fetch("PORT", 6767)
 
+# Bind to all interfaces (0.0.0.0) to allow network access
+# This makes the server accessible from other devices on the network
+bind_to = ENV.fetch("BIND", "0.0.0.0")
+bind "tcp://#{bind_to}:#{ENV.fetch("PORT", 6767)}"
+
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 
