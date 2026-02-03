@@ -19,8 +19,8 @@
 # ============================================================================
 
 class ConfigController < ApplicationController
-  # Skip authentication for config viewer (read-only, no sensitive data)
-  skip_before_action :authenticate_user!, only: [:index, :show, :files]
+  # Config viewer is read-only and doesn't require authentication
+  # (authenticate_user! is only defined in TasksController, not ApplicationController)
   
   # Base path for config files (parent of Rails app)
   CONFIG_PATH = Rails.root.join('..').freeze
@@ -66,7 +66,8 @@ class ConfigController < ApplicationController
     @file_content = read_config_file(filename)
     @file_metadata = file_metadata(filename)
     
-    render :index
+    # Force HTML format (file param ends with .md but we render HTML)
+    render :index, formats: [:html]
   end
   
   private
