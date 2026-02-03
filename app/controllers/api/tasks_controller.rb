@@ -166,7 +166,14 @@ module Api
     end
 
     def task_params
-      params.permit(:title, :description, :assignee, :status, :priority)
+      # Support both flat params (Node.js style) and nested params (Rails convention)
+      # Node.js API sends: {"title": "...", "assignee": "..."}
+      # Rails convention:  {"task": {"title": "...", "assignee": "..."}}
+      if params[:task].present?
+        params.require(:task).permit(:title, :description, :assignee, :status, :priority)
+      else
+        params.permit(:title, :description, :assignee, :status, :priority)
+      end
     end
   end
 end

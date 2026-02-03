@@ -56,6 +56,14 @@ Rails.application.routes.draw do
   # The Kanban board is our homepage
   root 'tasks#index'
   
+  # Config file viewer - browse Sparky's .md files
+  # GET /config - shows file browser
+  # GET /config/files - JSON API for file list
+  # GET /config/:file - shows specific file
+  get 'config', to: 'config#index', as: :config
+  get 'config/files', to: 'config#files'
+  get 'config/:file', to: 'config#show', as: :config_file, constraints: { file: /[^\/]+/ }
+  
   # Health check endpoint for monitoring
   get 'up' => 'rails/health#show', as: :rails_health_check
 end

@@ -1,0 +1,86 @@
+/- ============================================================================
+/  Config Viewer - Index View
+/  ============================================================================
+/  
+/  LEARNING NOTES:
+/  
+/  This is a Slim template (not ERB). Slim is indentation-based like Python.
+/  - No closing tags needed
+/  - Indentation determines nesting
+/  - CSS classes: .class-name or div.class-name
+/  - IDs: #id-name
+/  
+/  COMPARISON TO HTML/ERB:
+/  - ERB: <div class="sidebar"><ul>...</ul></div>
+/  - Slim: .sidebar\n  ul\n    li ...
+/  
+/  ============================================================================
+
+/  Page title
+- content_for :title, "Config Viewer"
+
+/  Include the markdown parser JavaScript
+- content_for :head do
+  = javascript_include_tag 'config_viewer'
+
+/  Main container
+.container-fluid.mt-4
+  .row.g-0
+    /  Sidebar - File Navigation
+    .col-md-3.col-lg-2
+      .card.h-100
+        .card-header.bg-primary-subtle
+          h6.mb-0.text-secondary
+            i.bi.bi-file-earmark-text.me-2
+            | Configuration Files
+        .list-group.list-group-flush
+          - @files.each do |file|
+            - is_active = file[:name] == @current_file
+            = link_to config_file_path(file[:name]), 
+                class: "list-group-item list-group-item-action #{is_active ? 'active' : ''}" do
+              .d-flex.w-100.justify-content-between
+                h6.mb-1 = file[:label]
+              small.text-truncate class=(is_active ? 'text-white-50' : 'text-muted')
+                = file[:description]
+    
+    /  Content Area - File Display
+    .col-md-9.col-lg-10
+      .card
+        .card-header.d-flex.justify-content-between.align-items-center
+          .text-muted.small
+            i.bi.bi-file-earmark-text.me-1
+            = @current_file
+            - if @file_metadata
+              span.mx-2 |
+              i.bi.bi-calendar.me-1
+              = @file_metadata[:modified]&.strftime('%Y-%m-%d %H:%M') || 'Unknown'
+              span.mx-2 |
+              i.bi.bi-hdd.me-1
+              = number_to_human_size(@file_metadata[:size])
+          
+          .d-flex.gap-2
+            = link_to tasks_path, class: "btn btn-outline-primary btn-sm" do
+              i.bi.bi-kanban.me-1
+              | Kanban
+            = link_to root_path, class: "btn btn-outline-secondary btn-sm" do
+              i.bi.bi-house.me-1
+              | Home
+        
+        .card-body.markdown-content data-content=@file_content
+          /  Content will be rendered by JavaScript
+          .text-center.text-muted.py-5
+            .spinner-border role="status"
+              span.visually-hidden Loading...
+
+/  JavaScript to render markdown
+javascript:
+  document.addEventListener('DOMContentLoaded', function() {
+    const contentDiv = document.querySelector('.markdown-content');
+    const markdownContent = contentDiv.dataset.content;
+    
+    if (window.parseMarkdown && markdownContent) {
+      contentDiv.innerHTML = window.parseMarkdown(markdownContent);
+    } else {
+      contentDiv.innerHTML = '<div class="alert alert-danger">Failed to load content</div>';
+    }
+  });

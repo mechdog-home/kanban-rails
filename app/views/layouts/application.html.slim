@@ -59,6 +59,12 @@ html
                   | Users
           
           ul.navbar-nav
+            / Config Viewer Link
+            li.nav-item.me-2
+              = link_to config_path, class: 'nav-link', title: 'View Config Files' do
+                i.bi.bi-file-earmark-text.me-1
+                span.d-none.d-lg-inline Config
+            
             / Theme Toggle Button
             / ============================================================================
             / LEARNING NOTES - STIMULUS DATA-ACTION:
