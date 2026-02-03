@@ -19,7 +19,7 @@
 /  Page title
 - content_for :title, "Config Viewer"
 
-/  Include the markdown parser JavaScript
+/  Include the markdown parser JavaScript in head (must load before inline script)
 - content_for :head do
   = javascript_include_tag 'config_viewer'
 
@@ -66,21 +66,6 @@
               i.bi.bi-house.me-1
               | Home
         
-        .card-body.markdown-content data-content=@file_content
-          /  Content will be rendered by JavaScript
-          .text-center.text-muted.py-5
-            .spinner-border role="status"
-              span.visually-hidden Loading...
-
-/  JavaScript to render markdown
-javascript:
-  document.addEventListener('DOMContentLoaded', function() {
-    const contentDiv = document.querySelector('.markdown-content');
-    const markdownContent = contentDiv.dataset.content;
-    
-    if (window.parseMarkdown && markdownContent) {
-      contentDiv.innerHTML = window.parseMarkdown(markdownContent);
-    } else {
-      contentDiv.innerHTML = '<div class="alert alert-danger">Failed to load content</div>';
-    }
-  });
+        .card-body.markdown-content
+          /  Render markdown content server-side using Redcarpet
+          = render_markdown(@file_content)

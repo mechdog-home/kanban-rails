@@ -70,3 +70,6 @@ gem 'stimulus-rails'  # Stimulus JS controllers
 # Authentication & Authorization (per RAILS_CONVENTIONS.md)
 gem 'devise'          # User authentication
 gem 'pundit'          # Policy-based authorization
+
+# Markdown rendering for config viewer
+gem 'redcarpet'       # Fast markdown parser

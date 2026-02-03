@@ -18,6 +18,8 @@
 #
 # ============================================================================
 
+require 'redcarpet'
+
 class ConfigController < ApplicationController
   # Config viewer is read-only and doesn't require authentication
   # (authenticate_user! is only defined in TasksController, not ApplicationController)
@@ -125,5 +127,32 @@ class ConfigController < ApplicationController
     end
   rescue
     { size: 0, modified: nil }
+  end
+  
+  # =======================================================================
+  # Render markdown to HTML using Redcarpet
+  # Made public for testing purposes
+  # =======================================================================
+  helper_method :render_markdown
+  def render_markdown(text)
+    return "" unless text
+    
+    renderer = Redcarpet::Render::HTML.new(
+      hard_wrap: true,
+      link_attributes: { target: "_blank" }
+    )
+    
+    markdown = Redcarpet::Markdown.new(renderer,
+      autolink: true,
+      tables: true,
+      fenced_code_blocks: true,
+      strikethrough: true,
+      superscript: true,
+      underline: true,
+      highlight: true,
+      quote: true
+    )
+    
+    markdown.render(text).html_safe
   end
 end
