@@ -85,6 +85,7 @@ module Api
       
       # ==========================================================================
       # Read and parse the usage-log.json file
+      # Also checks for actual recent database activity for live status
       # ==========================================================================
       #
       # LEARNING NOTE: Rails provides File.read and JSON.parse
@@ -93,25 +94,35 @@ module Api
       def read_usage_log
         log_path = Rails.root.join('..', 'memory', 'usage-log.json')
         
-        # Return defaults if file doesn't exist
-        return default_usage_data unless File.exist?(log_path)
+        # Get usage data from file
+        file_data = if File.exist?(log_path)
+          data = JSON.parse(File.read(log_path))
+          sessions = data['sessions'] || []
+          last_session = sessions.last || {}
+          {
+            context_percent: last_session['context_pct'] || 0,
+            model: last_session['model'] || 'moonshot/kimi-k2.5',
+            file_timestamp: last_session['timestamp'] ? Time.parse(last_session['timestamp']) : nil
+          }
+        else
+          { context_percent: 0, model: 'moonshot/kimi-k2.5', file_timestamp: nil }
+        end
         
-        data = JSON.parse(File.read(log_path))
+        # Get ACTUAL recent activity from database (more accurate than file)
+        # Check when Sparky's tasks were last updated
+        last_task_update = Task.for_assignee('sparky').maximum(:updated_at)
         
-        # Extract the most recent session
-        sessions = data['sessions'] || []
-        last_session = sessions.last || {}
+        # Check for any recent task changes (any assignee, any status)
+        last_any_task_update = Task.maximum(:updated_at)
         
-        # Get last activity timestamp
-        last_activity = last_session['timestamp'] ? 
-                       Time.parse(last_session['timestamp']) : 
-                       10.minutes.ago
+        # Use the most recent of: task update, file timestamp, or current time
+        last_activity = [last_task_update, last_any_task_update, file_data[:file_timestamp]].compact.max
         
         {
-          context_percent: last_session['context_pct'] || 0,
-          context_used: calculate_context_used(last_session['context_pct']),
-          model: last_session['model'] || 'moonshot/kimi-k2.5',
-          last_activity: last_activity
+          context_percent: file_data[:context_percent],
+          context_used: calculate_context_used(file_data[:context_percent]),
+          model: file_data[:model],
+          last_activity: last_activity || 10.minutes.ago
         }
       rescue JSON::ParserError, StandardError => e
         Rails.logger.error("Error reading usage log: #{e.message}")
@@ -135,10 +146,18 @@ module Api
         (percent / 100.0 * 256_000).round
       end
       
-      # Check if last activity was within 2 minutes
+      # Check if Sparky is currently active
+      # Active if: recent task updates OR has sprint/in_progress tasks
       def active_within_last_2_minutes?(last_activity)
-        return false unless last_activity
-        last_activity > 2.minutes.ago
+        # Consider active if there was DB activity in last 10 minutes
+        return true if last_activity && last_activity > 10.minutes.ago
+        
+        # Also consider active if there's a current sprint task
+        # (even if we haven't updated tasks recently, we're working on it)
+        current_task = fetch_current_task
+        return true if current_task.present?
+        
+        false
       end
       
       # Fetch Sparky's current active task
