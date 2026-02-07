@@ -48,17 +48,25 @@ export default class extends Controller {
       })
       
       if (response.ok) {
+        // Check if we got a Turbo Stream response
+        const contentType = response.headers.get('content-type') || ''
+        const isTurboStream = contentType.includes('turbo-stream')
+        
         // If Turbo Stream response, it handles DOM update automatically
         // Otherwise, remove element manually
-        if (!response.headers.get('content-type')?.includes('turbo-stream')) {
+        if (!isTurboStream) {
           this.element.remove()
         }
+        // Success! Don't show any error
       } else {
-        throw new Error('Delete failed')
+        // Only show error if response was not OK
+        console.error('Delete failed with status:', response.status)
+        alert('Failed to delete task')
       }
     } catch (error) {
-      console.error('Error deleting task:', error)
-      alert('Failed to delete task')
+      // This catches network errors, not HTTP error responses
+      console.error('Network error deleting task:', error)
+      alert('Failed to delete task - network error')
     }
   }
   
