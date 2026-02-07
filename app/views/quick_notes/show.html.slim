@@ -1,0 +1,69 @@
+/ ============================================================================
+/ View: Show Quick Note
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This view displays a single quick note in full detail.
+/ It provides options to edit or delete the note.
+/
+/ ============================================================================
+
+.container-fluid.px-4.py-4
+  / --------------------------------------------------------------------------
+  / Header
+  / --------------------------------------------------------------------------
+  .row.mb-4
+    .col-12
+      h1.h3.mb-0
+        i.bi.bi-sticky.me-2
+        | Quick Note
+
+  / --------------------------------------------------------------------------
+  / Note Card
+  / --------------------------------------------------------------------------
+  .row
+    .col-md-8.col-lg-6
+      .card class=@quick_note.age_css_class
+        .card-header
+          .d-flex.justify-content-between.align-items-center
+            h5.mb-0 = @quick_note.title
+            small.text-muted
+              = @quick_note.time_since_update
+              - if @quick_note.edited?
+                span.ms-1 (edited)
+        
+        .card-body
+          - if @quick_note.content.present?
+            p.card-text = @quick_note.content
+          - else
+            p.card-text.text-muted.font-italic No content
+          
+          hr
+          
+          .text-muted.small
+            i.bi.bi-clock.me-1
+            | Created: 
+            = @quick_note.created_at.strftime("%B %d, %Y at %I:%M %p")
+            br
+            i.bi.bi-pencil.me-1
+            | Updated: 
+            = @quick_note.updated_at.strftime("%B %d, %Y at %I:%M %p")
+        
+        .card-footer
+          .d-flex.justify-content-between
+            = link_to quick_notes_path, class: "btn btn-outline-secondary" do
+              i.bi.bi-arrow-left.me-1
+              | Back
+            
+            .d-flex.gap-2
+              = link_to edit_quick_note_path(@quick_note), class: "btn btn-outline-primary" do
+                i.bi.bi-pencil.me-1
+                | Edit
+              
+              = button_to quick_note_path(@quick_note), 
+                  method: :delete, 
+                  class: "btn btn-outline-danger",
+                  data: { turbo_confirm: "Are you sure you want to delete this note?" } do
+                i.bi.bi-trash.me-1
+                | Delete

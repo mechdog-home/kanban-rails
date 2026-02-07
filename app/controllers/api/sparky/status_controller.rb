@@ -54,22 +54,30 @@ module Api
       # - Otherwise, we return JSON (for API clients, JavaScript fetch)
       #
       def show
-        # Read usage data from memory file
+        # Read usage data from memory file and database
         usage_data = read_usage_log
         
         # Get current task (sprint or in_progress assigned to sparky)
         current_task = fetch_current_task
         
-        # Build status hash
+        # Determine if file data is stale (> 30 minutes old)
+        file_timestamp = usage_data[:file_timestamp]
+        data_stale = file_timestamp.nil? || file_timestamp < 30.minutes.ago
+        
+        # Build status hash with consistent structure
         @status = {
           timestamp: Time.current.iso8601,
           timezone: 'America/New_York',
           context_percent: usage_data[:context_percent],
           context_approx: "#{usage_data[:context_used] / 1000}k",
           model: usage_data[:model],
-          is_active: active_within_last_2_minutes?(usage_data[:last_activity]),
+          is_active: active_within_last_10_minutes?(usage_data[:last_activity], current_task),
           current_task: current_task,
-          status: determine_status(current_task)
+          status: determine_status(current_task),
+          last_activity_at: usage_data[:last_activity]&.iso8601,
+          data_source: data_stale ? 'stale_file' : 'file',
+          data_stale: data_stale,
+          file_timestamp: file_timestamp&.iso8601
         }
         
         # Respond based on Accept header
@@ -122,7 +130,8 @@ module Api
           context_percent: file_data[:context_percent],
           context_used: calculate_context_used(file_data[:context_percent]),
           model: file_data[:model],
-          last_activity: last_activity || 10.minutes.ago
+          last_activity: last_activity || 10.minutes.ago,
+          file_timestamp: file_data[:file_timestamp]
         }
       rescue JSON::ParserError, StandardError => e
         Rails.logger.error("Error reading usage log: #{e.message}")
@@ -135,7 +144,8 @@ module Api
           context_percent: 0,
           context_used: 0,
           model: 'moonshot/kimi-k2.5',
-          last_activity: 10.minutes.ago
+          last_activity: 10.minutes.ago,
+          file_timestamp: nil
         }
       end
       
@@ -148,13 +158,13 @@ module Api
       
       # Check if Sparky is currently active
       # Active if: recent task updates OR has sprint/in_progress tasks
-      def active_within_last_2_minutes?(last_activity)
+      def active_within_last_10_minutes?(last_activity, current_task = nil)
         # Consider active if there was DB activity in last 10 minutes
         return true if last_activity && last_activity > 10.minutes.ago
         
-        # Also consider active if there's a current sprint task
+        # Also consider active if there's a current task
         # (even if we haven't updated tasks recently, we're working on it)
-        current_task = fetch_current_task
+        current_task ||= fetch_current_task
         return true if current_task.present?
         
         false

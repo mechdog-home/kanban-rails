@@ -267,4 +267,174 @@ class TaskTest < ActiveSupport::TestCase
     assert_equal 1, grouped["mechdog"].count
     assert_equal 1, grouped["sparky"].count
   end
+
+  # ==========================================================================
+  # LAST_WORKED_ON TESTS
+  # ==========================================================================
+  #
+  # These tests cover the last_worked_on datetime field and related methods.
+  # This field tracks when Sparky last worked on a task so MechDog can see
+  # which tasks are dormant and need attention.
+  #
+
+  test "last_worked_on is nil by default" do
+    task = Task.create!(@valid_attributes)
+    assert_nil task.last_worked_on
+  end
+
+  test "touch_last_worked! updates last_worked_on to current time" do
+    task = Task.create!(@valid_attributes)
+    freeze_time = Time.current
+    
+    travel_to freeze_time do
+      task.touch_last_worked!
+    end
+    
+    task.reload
+    assert_equal freeze_time.to_i, task.last_worked_on.to_i
+  end
+
+  test "touch_last_worked! bypasses validations and callbacks" do
+    task = Task.create!(@valid_attributes)
+    
+    # This should work even if we make the task temporarily invalid
+    # (since update_column bypasses validations)
+    assert_nothing_raised do
+      task.touch_last_worked!
+    end
+  end
+
+  test "dormant? returns false when last_worked_on is nil" do
+    task = Task.create!(@valid_attributes.merge(last_worked_on: nil))
+    assert_not task.dormant?
+  end
+
+  test "dormant? returns false for recently worked tasks" do
+    task = Task.create!(@valid_attributes.merge(last_worked_on: 1.day.ago))
+    assert_not task.dormant?
+  end
+
+  test "dormant? returns true for tasks not worked on in 7 days" do
+    task = Task.create!(@valid_attributes.merge(last_worked_on: 8.days.ago))
+    assert task.dormant?
+  end
+
+  test "dormant? returns true for tasks exactly at 7 day boundary" do
+    task = Task.create!(@valid_attributes.merge(last_worked_on: 7.days.ago - 1.minute))
+    assert task.dormant?
+  end
+
+  test "time_since_work returns 'Never' when last_worked_on is nil" do
+    task = Task.new(@valid_attributes.merge(last_worked_on: nil))
+    assert_equal "Never", task.time_since_work
+  end
+
+  test "time_since_work returns human readable time" do
+    task = Task.new(@valid_attributes.merge(last_worked_on: 2.hours.ago))
+    assert_match(/2 hours ago/, task.time_since_work)
+  end
+
+  test "by_last_worked scope orders by last_worked_on descending" do
+    old_task = Task.create!(@valid_attributes.merge(title: "Old", last_worked_on: 5.days.ago))
+    new_task = Task.create!(@valid_attributes.merge(title: "New", last_worked_on: 1.day.ago))
+    no_work_task = Task.create!(@valid_attributes.merge(title: "Never", last_worked_on: nil))
+    
+    tasks = Task.by_last_worked
+    
+    # Tasks with last_worked_on come first (newest to oldest)
+    assert_equal new_task, tasks[0]
+    assert_equal old_task, tasks[1]
+    # Tasks with nil last_worked_on come last
+    assert_equal no_work_task, tasks[2]
+  end
+
+  test "dormant scope returns tasks not worked on in 7 days" do
+    dormant_task = Task.create!(@valid_attributes.merge(title: "Dormant", last_worked_on: 10.days.ago))
+    recent_task = Task.create!(@valid_attributes.merge(title: "Recent", last_worked_on: 1.day.ago))
+    never_task = Task.create!(@valid_attributes.merge(title: "Never", last_worked_on: nil))
+    
+    dormant_tasks = Task.dormant
+    
+    assert_includes dormant_tasks, dormant_task
+    assert_includes dormant_tasks, never_task
+    assert_not_includes dormant_tasks, recent_task
+  end
+
+  test "updating status updates last_worked_on automatically" do
+    task = Task.create!(@valid_attributes.merge(status: "backlog", last_worked_on: nil))
+    
+    freeze_time = Time.current
+    travel_to freeze_time do
+      task.update!(status: "in_progress")
+    end
+    
+    task.reload
+    assert_equal freeze_time.to_i, task.last_worked_on.to_i
+  end
+
+  test "updating assignee updates last_worked_on automatically" do
+    task = Task.create!(@valid_attributes.merge(assignee: "mechdog", last_worked_on: nil))
+    
+    freeze_time = Time.current
+    travel_to freeze_time do
+      task.update!(assignee: "sparky")
+    end
+    
+    task.reload
+    assert_equal freeze_time.to_i, task.last_worked_on.to_i
+  end
+
+  test "updating title does not update last_worked_on" do
+    task = Task.create!(@valid_attributes.merge(title: "Original", last_worked_on: 1.day.ago))
+    original_time = task.last_worked_on
+    
+    task.update!(title: "Updated")
+    task.reload
+    
+    assert_equal original_time.to_i, task.last_worked_on.to_i
+  end
+
+  test "updating description does not update last_worked_on" do
+    task = Task.create!(@valid_attributes.merge(last_worked_on: 1.day.ago))
+    original_time = task.last_worked_on
+    
+    task.update!(description: "Updated description")
+    task.reload
+    
+    assert_equal original_time.to_i, task.last_worked_on.to_i
+  end
+
+  test "updating priority does not update last_worked_on" do
+    task = Task.create!(@valid_attributes.merge(priority: "low", last_worked_on: 1.day.ago))
+    original_time = task.last_worked_on
+    
+    task.update!(priority: "high")
+    task.reload
+    
+    assert_equal original_time.to_i, task.last_worked_on.to_i
+  end
+
+  test "advance_status! updates last_worked_on" do
+    task = Task.create!(@valid_attributes.merge(status: "backlog", last_worked_on: nil))
+    
+    freeze_time = Time.current
+    travel_to freeze_time do
+      task.advance_status!
+    end
+    
+    task.reload
+    assert_equal freeze_time.to_i, task.last_worked_on.to_i
+  end
+
+  test "regress_status! updates last_worked_on" do
+    task = Task.create!(@valid_attributes.merge(status: "in_progress", last_worked_on: nil))
+    
+    freeze_time = Time.current
+    travel_to freeze_time do
+      task.regress_status!
+    end
+    
+    task.reload
+    assert_equal freeze_time.to_i, task.last_worked_on.to_i
+  end
 end

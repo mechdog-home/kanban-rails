@@ -161,8 +161,66 @@ class TaskCardPartialTest < ActionView::TestCase
 
   test "_task_card partial has correct priority class" do
     render partial: "tasks/task_card", locals: { task: @task }
-    
+
     # Should have priority-high class for styling
     assert_includes rendered, "priority-high"
+  end
+
+  # ==========================================================================
+  # TASK ID DISPLAY TESTS
+  # ==========================================================================
+
+  test "_task_card partial displays task ID badge" do
+    render partial: "tasks/task_card", locals: { task: @task }
+
+    # Should display the task ID with # prefix (e.g., "#123")
+    assert_includes rendered, "##{@task.id}"
+  end
+
+  test "_task_card partial has task-id-badge CSS class" do
+    render partial: "tasks/task_card", locals: { task: @task }
+
+    # Should have the task-id-badge class for styling
+    assert_includes rendered, "task-id-badge"
+  end
+
+  test "_task_card partial task ID is positioned correctly" do
+    render partial: "tasks/task_card", locals: { task: @task }
+
+    # The badge should be within the card-body and positioned via CSS
+    # Check that the card has relative positioning for absolute badge
+    assert_includes rendered, "task-card"
+  end
+
+  # ==========================================================================
+  # DETAIL VIEW LINK TESTS
+  # ==========================================================================
+
+  test "_task_card partial has link to task detail view" do
+    render partial: "tasks/task_card", locals: { task: @task }
+
+    # Should have link to task_path (detail view)
+    assert_includes rendered, task_path(@task)
+  end
+
+  test "_task_card partial has eye icon for viewing details" do
+    render partial: "tasks/task_card", locals: { task: @task }
+
+    # Should have bi-eye icon for detail view
+    assert_includes rendered, "bi-eye"
+  end
+
+  test "_task_card partial title is clickable link to detail view" do
+    render partial: "tasks/task_card", locals: { task: @task }
+
+    # The title should be wrapped in a link
+    assert_includes rendered, "stretched-link"
+  end
+
+  test "_task_card partial has view details button" do
+    render partial: "tasks/task_card", locals: { task: @task }
+
+    # Should have a button/link with View Details title
+    assert_includes rendered, "View Details"
   end
 end

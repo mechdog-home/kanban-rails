@@ -1,0 +1,120 @@
+/ ============================================================================
+/ Partial: AI Provider Balances Display
+/ ============================================================================
+/
+/ Displays current balances for all configured AI providers.
+/ Shows at the top of the Kanban board.
+/
+/ STIMULUS INTEGRATION:
+/ - data-controller="balance" connects to balance_controller.js
+/ - Auto-refreshes periodically
+/ - Manual refresh button available
+/
+/ ============================================================================
+
+#api-balances.card.mb-4 data-controller="balance" data-balance-url-value="/api/balances" data-balance-refresh-interval-value="300000"
+  .card-header.d-flex.justify-content-between.align-items-center
+    .d-flex.align-items-center
+      i.bi.bi-wallet2.me-2.text-primary
+      strong AI Provider Balances
+      - if balances.present?
+        span.badge.bg-secondary.ms-2 #{balances.count { |_, v| v[:success] }} active
+    
+    .d-flex.align-items-center.gap-2
+      / Last updated timestamp
+      - last_updated = balances&.values&.map { |v| v[:queried_at] }&.compact&.max
+      - if last_updated
+        small.text-muted data-balance-target="lastUpdated"
+          = "Updated #{time_ago_in_words(last_updated)} ago"
+      - else
+        small.text-muted data-balance-target="lastUpdated" Just now
+      
+      / Manual refresh button
+      button.btn.btn-sm.btn-outline-primary.py-0.px-2 type="button" data-action="click->balance#refresh" title="Refresh balances"
+        i.bi.bi-arrow-clockwise.small
+        span.ms-1.d-none.d-md-inline Refresh
+  
+  .card-body.p-0
+    .table-responsive
+      table.table.table-sm.table-hover.mb-0
+        thead.table-light
+          tr
+            th.ps-3 Provider
+            th Balance
+            th Status
+            th.d-none.d-md-table-cell Last Check
+        tbody
+          - ApiBalanceHistory::PROVIDERS.each do |provider|
+            - data = balances&.dig(provider) || {}
+            tr
+              / Provider name with icon
+              td.ps-3
+                .d-flex.align-items-center
+                  - case provider
+                  - when 'moonshot'
+                    i.bi.bi-moon-stars.me-2.text-warning
+                    span Moonshot
+                  - when 'anthropic'
+                    i.bi.bi-robot.me-2.text-purple style="color: #d4a574;"
+                    span Anthropic
+                  - when 'openai'
+                    i.bi.bi-cpu.me-2.text-success
+                    span OpenAI
+                  - when 'xai'
+                    i.bi.bi-lightning-charge.me-2.text-info
+                    span xAI
+                  - when 'openrouter'
+                    i.bi.bi-router.me-2.text-primary
+                    span OpenRouter
+              
+              / Balance
+              td
+                - if data[:success]
+                  - if data[:supports_api] == false
+                    span.badge.bg-secondary Console Only
+                  - elsif data[:balance].present?
+                    span.fw-bold
+                      = number_to_currency(data[:balance], unit: data[:currency] == 'CNY' ? '¥' : '$')
+                      small.text-muted.ms-1= data[:currency]
+                  - else
+                    span.text-muted —
+                - else
+                  span.badge.bg-danger Error
+              
+              / Status
+              td
+                - if data[:success]
+                  - if data[:supports_api] == false
+                    small.text-muted
+                      i.bi.bi-info-circle.me-1
+                      | Check console
+                  - elsif data[:balance].present?
+                    - if data[:balance] > 20
+                      span.badge.bg-success Healthy
+                    - elsif data[:balance] > 5
+                      span.badge.bg-warning.text-dark Low
+                    - else
+                      span.badge.bg-danger Critical
+                  - else
+                    span.badge.bg-secondary Unknown
+                - else
+                  small.text-danger data-bs-toggle="tooltip" title=data[:error]
+                    i.bi.bi-exclamation-triangle.me-1
+                    | Failed
+              
+              / Last check time
+              td.d-none.d-md-table-cell
+                - queried_at = data[:queried_at]
+                - if queried_at
+                  small.text-muted= time_ago_in_words(queried_at) + ' ago'
+                - else
+                  small.text-muted —
+
+  / Footer with usage hint
+  .card-footer.bg-light.py-2
+    .d-flex.justify-content-between.align-items-center
+      small.text-muted
+        i.bi.bi-clock-history.me-1
+        | Auto-refreshes every 5 minutes
+      small.text-muted
+        | Balances recorded #{ApiBalanceHistory.count} times in database

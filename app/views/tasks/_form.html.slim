@@ -58,6 +58,15 @@
               input_html: { class: 'form-select' },
               label: 'Priority'
 
+  / Last worked on datetime (optional - auto-updates on status/assignee changes)
+  .mb-3
+    = f.input :last_worked_on,
+              as: :datetime,
+              html5: true,
+              input_html: { class: 'form-control' },
+              label: 'Last Worked On (optional)',
+              hint: 'Auto-updates when status or assignee changes. Use POST /api/tasks/:id/touch_last_worked to set to now.'
+
   / Form buttons
   .d-flex.gap-2
     = f.submit 'Save Task', class: 'btn btn-primary'

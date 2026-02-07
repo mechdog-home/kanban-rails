@@ -42,6 +42,16 @@
 / In the layout (application.html.slim), there's a `= yield :head`
 / in the <head> tag that renders whatever we put here.
 /
+/ ============================================================================
+/ KANBAN BOARD HEADER
+/ ============================================================================
+/
+/ Compact header row with:
+/ - AI Provider Balances (compact, left)
+/ - Sparky Status Card (right)
+/
+/ ============================================================================
+
 - content_for :head do
   css:
     /* ====================================================================
@@ -152,6 +162,40 @@
       letter-spacing: 0.05em;
     }
 
+    /* --- Compact Balance Display --- */
+    .balance-compact {
+      background: var(--bs-tertiary-bg);
+      border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .balance-compact .balance-item {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0 0.5rem;
+      border-right: 1px solid var(--bs-border-color);
+    }
+
+    .balance-compact .balance-item:last-of-type {
+      border-right: none;
+    }
+
+    .balance-compact .balance-amount {
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+
+    .balance-compact .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-left: 0.25rem;
+    }
+
 / ============================================================================
 / PAGE HEADER
 / ============================================================================
@@ -161,42 +205,66 @@
 /
 
 .container-fluid.px-4.py-3 data-controller="sortable" data-sortable-api-url-value="/api/tasks"
+  / ==========================================================================
+  / HEADER ROW: Balances (left) + Quick Notes (middle) + Sparky Status (right)
+  / ==========================================================================
+  .row.g-3.mb-4
+    / AI Balances (compact, left)
+    .col-auto
+      = render 'balances/balance_compact'
+    
+    / Quick Notes Section (middle)
+    .col-md-4
+      = render 'quick_notes/recent_notes', quick_notes: @recent_quick_notes
+    
+    / Sparky Status Card (right)
+    .col-md-4
+      = render 'sparky/status', status: fetch_sparky_status
+
   / --------------------------------------------------------------------------
-  / Title bar with task count and "Add Task" button
+  / Title bar with task count and action buttons
   / --------------------------------------------------------------------------
   .row.mb-4
-    .col-md-8
+    .col-12
       .d-flex.justify-content-between.align-items-center
         h1.h3.mb-0
           i.bi.bi-kanban.me-2
           | Kanban Board
           span.badge.bg-secondary.ms-2.fs-6 = @tasks.count
 
-        = link_to new_task_path, class: "btn btn-primary" do
-          i.bi.bi-plus-lg.me-1
-          | Add Task
-    
-    / Sparky Status Card - Live status display
-    .col-md-4
-      = render 'sparky/status', status: fetch_sparky_status
+        .d-flex.gap-2
+          = link_to archived_tasks_path, class: "btn btn-outline-secondary" do
+            i.bi.bi-archive.me-1
+            | Archived
+            = turbo_frame_tag "archived_count" do
+              - archived_count = Task.archived.count
+              - if archived_count > 0
+                span.badge.bg-secondary.ms-1 = archived_count
+          
+          = link_to new_task_path, class: "btn btn-primary" do
+            i.bi.bi-plus-lg.me-1
+            | Add Task
 
   / ==========================================================================
-  / SWIM LANES — One per assignee
+  / SWIM LANES — One per assignee (Sparky first for visibility)
   / ==========================================================================
   /
   / LEARNING NOTE: We iterate over Task::ASSIGNEES (defined in the model).
   / Currently that's ["mechdog", "sparky"].
+  /
+  / We use reverse_each so Sparky's columns appear at the top for better
+  / visibility (MechDog wanted Sparky's tasks more prominent on the board).
   /
   / Each swim lane contains 3 status columns: Backlog, In Progress, Done.
   / Cards can be dragged between columns AND between swim lanes.
   / The data-status and data-assignee attributes on each column tell our
   / Stimulus controller what values to send when a card is dropped.
   /
-  / Ruby: Task::ASSIGNEES.each iterates over the constant array
+  / Ruby: Task::ASSIGNEES.reverse_each iterates in reverse order
   / Slim: `-` runs Ruby without output, `=` outputs the result
   /
 
-  - Task::ASSIGNEES.each do |assignee|
+  - Task::ASSIGNEES.reverse_each do |assignee|
     / Each swim lane has a colored border matching the assignee
     .swim-lane class="swim-lane-#{assignee}"
 

@@ -1,0 +1,38 @@
+/ ============================================================================
+/ Partial: AI Provider Balances Display (Compact)
+/ ============================================================================
+/
+/ Compact balance display for kanban board header.
+/ Only shows providers with API-accessible balances.
+/ Positioned to the left of the Sparky status card.
+/
+/ ============================================================================
+
+-# Only show providers with actual API data (Moonshot, OpenRouter)
+- api_providers = ['moonshot', 'openrouter']
+- latest = ApiBalanceHistory.latest_balances
+
+#api-balances.balance-compact data-controller="balance" data-balance-url-value="/api/balances" data-balance-refresh-interval-value="300000"
+  .d-flex.align-items-center.gap-3
+    - api_providers.each do |provider|
+      - data = latest[provider] || {}
+      - next unless data[:success] && data[:balance].present?
+      
+      .balance-item.d-flex.align-items-center.gap-1
+        - case provider
+        - when 'moonshot'
+          i.bi.bi-moon-stars.text-warning.small
+        - when 'openrouter'
+          i.bi.bi-router.text-primary.small
+        
+        span.balance-amount.fw-bold.small
+          = "$#{data[:balance].round(2)}"
+        
+        -# Status indicator dot
+        - balance = data[:balance].to_f
+        - status_class = balance > 20 ? 'bg-success' : (balance > 5 ? 'bg-warning' : 'bg-danger')
+        span.status-dot.rounded-circle class=status_class style="width: 6px; height: 6px;"
+    
+    / Refresh button
+    button.btn.btn-link.btn-sm.p-0.ms-1 type="button" data-action="click->balance#refresh" title="Refresh"
+      i.bi.bi-arrow-clockwise.small.text-muted

@@ -64,10 +64,17 @@
 / id="task_#{task.id}" is used by Turbo Streams to target this element
 / data-* attributes are used by JavaScript for drag-and-drop and other client-side features
 / Note: In Slim, attributes must be on the same line as the element or properly indented
-.card.task-card.mb-2 id="task_#{task.id}" class="priority-#{task.priority}" data-id=task.id data-status=task.status data-assignee=task.assignee 
+.card.task-card.mb-2 id="task_#{task.id}" class="priority-#{task.priority}" data-id=task.id data-status=task.status data-assignee=task.assignee
   .card-body.p-2
-    / Task title
-    h6.card-title.mb-1.small.fw-bold = task.title
+    / Task ID badge and detail link (top-right corner)
+    .d-flex.justify-content-between.align-items-start.mb-1
+      .task-id-badge ##{task.id}
+      = link_to task_path(task), class: "btn btn-link btn-sm p-0 text-decoration-none", title: "View Details" do
+        i.bi.bi-eye.small
+
+    / Task title (clickable to view details)
+    h6.card-title.mb-1.small.fw-bold
+      = link_to task.title, task_path(task), class: "text-decoration-none text-reset stretched-link"
 
     / Task description (truncated)
     - if task.description.present?
@@ -75,7 +82,8 @@
         = truncate(task.description, length: 50)
 
     / Compact action bar: Move arrows + Edit/Delete
-    .d-flex.justify-content-between.align-items-center.mt-2.gap-1
+    / position-relative and z-index ensure buttons are clickable above the stretched-link
+    .d-flex.justify-content-between.align-items-center.mt-2.gap-1.position-relative style="z-index: 2;"
       / Move arrows - compact side by side
       .btn-group.btn-group-sm style="flex-shrink: 0;"
         - if task.previous_status
@@ -100,8 +108,16 @@
         = task.priority[0].upcase
       
       / Edit/Delete - smaller icons
-      .btn-group.btn-group-sm style="flex-shrink: 0;"
+      / position-relative and z-index ensure these buttons are clickable above the stretched-link
+      .btn-group.btn-group-sm.position-relative style="flex-shrink: 0; z-index: 2;"
         = link_to edit_task_path(task), class: "btn btn-outline-secondary py-0 px-1", title: "Edit" do
           i.bi.bi-pencil.small
         button.btn.btn-outline-danger.py-0.px-1 type="button" data-controller="task" data-action="click->task#delete" data-task-id-value=task.id title="Delete"
           i.bi.bi-trash.small
+    
+    / Last worked on timestamp (subtle)
+    - if task.last_worked_on.present?
+      .mt-1.text-end
+        small.text-muted style="font-size: 0.65rem;"
+          i.bi.bi-clock-history.me-1
+          = time_ago_in_words(task.last_worked_on) + " ago"

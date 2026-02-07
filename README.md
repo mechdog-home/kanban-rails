@@ -10,6 +10,16 @@ This app demonstrates:
 - **RESTful Routes** — Convention over configuration
 - **SLIM Templates** — Lightweight alternative to ERB
 - **Bootstrap Integration** — Styling with simple_form
+- **Service Objects** — Encapsulated business logic (BalanceService)
+- **Scheduled Tasks** — Rake tasks with cron/LaunchAgent
+- **Stimulus.js** — Modern JavaScript for Rails
+
+## Features
+
+- **Kanban Board** — Drag-and-drop task management with swim lanes
+- **AI Balance Monitoring** — Real-time balance tracking for AI providers (Moonshot, OpenRouter, etc.)
+- **Sparky Status** — Live agent status display
+- **Authentication** — Devise-based user auth with Pundit authorization
 
 ## Express vs Rails Comparison
 
@@ -213,6 +223,36 @@ production:
 | POST | `/api/tasks` | Create task |
 | PATCH | `/api/tasks/:id` | Update task |
 | DELETE | `/api/tasks/:id` | Delete task |
+| GET | `/api/balances` | AI provider balances |
+| POST | `/api/balances/refresh` | Force refresh balances |
+| GET | `/api/balances/history` | Balance history data |
+
+## AI Balance Monitoring
+
+The Kanban board displays real-time AI provider balances at the top:
+
+- **Moonshot (Kimi)** — Live balance via API (¥ CNY)
+- **OpenRouter** — Live balance via API ($ USD)
+- **OpenAI, Anthropic, xAI** — Console-only (no public API)
+
+### Setup Balance Monitoring
+
+```bash
+# Check current balances
+rails balances:check
+
+# Record balances to database
+rails balances:update
+
+# View balance history
+rails balances:history
+
+# Automated scheduling (4x daily)
+./script/setup_balance_monitoring.sh  # macOS
+# OR add to crontab on Linux
+```
+
+See `docs/BALANCE_MONITORING.md` for detailed setup instructions.
 
 ## Running the App
 

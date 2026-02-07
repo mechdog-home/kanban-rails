@@ -1,0 +1,82 @@
+/ ============================================================================
+/ View: Quick Notes Index
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This view lists all quick notes, showing them as cards.
+/ It provides quick access to create, edit, and delete notes.
+/
+/ Unlike the Kanban board, this is a simple list view focused on
+/ browsing and managing quick notes.
+/
+/ ============================================================================
+
+.container-fluid.px-4.py-4
+  / --------------------------------------------------------------------------
+  / Header with title and "New Note" button
+  / --------------------------------------------------------------------------
+  .row.mb-4
+    .col-12
+      .d-flex.justify-content-between.align-items-center
+        h1.h3.mb-0
+          i.bi.bi-sticky.me-2
+          | Quick Notes
+          span.badge.bg-secondary.ms-2.fs-6 = @quick_notes.count
+
+        = link_to new_quick_note_path, class: "btn btn-primary" do
+          i.bi.bi-plus-lg.me-1
+          | New Note
+
+  / --------------------------------------------------------------------------
+  / Quick Notes List
+  / --------------------------------------------------------------------------
+  - if @quick_notes.any?
+    .row.row-cols-1.row-cols-md-2.row-cols-lg-3.g-4
+      - @quick_notes.each do |note|
+        .col
+          / Note card with border color based on age
+          .card.h-100 class=note.age_css_class
+            .card-body
+              / Title
+              h5.card-title.mb-2 = note.title
+              
+              / Content preview
+              - if note.content.present?
+                p.card-text.text-muted = note.preview(150)
+              - else
+                p.card-text.text-muted.font-italic No content
+              
+              / Timestamp
+              small.text-muted
+                i.bi.bi-clock.me-1
+                = note.time_since_update
+                - if note.edited?
+                  span.ms-1 (edited)
+
+            .card-footer.bg-transparent
+              .d-flex.justify-content-between.align-items-center
+                / Edit button
+                = link_to edit_quick_note_path(note), class: "btn btn-sm btn-outline-primary" do
+                  i.bi.bi-pencil.me-1
+                  | Edit
+                
+                / Delete button
+                = button_to quick_note_path(note), 
+                    method: :delete, 
+                    class: "btn btn-sm btn-outline-danger",
+                    data: { turbo_confirm: "Are you sure you want to delete this note?" } do
+                  i.bi.bi-trash.me-1
+                  | Delete
+
+  - else
+    / Empty state when no notes exist
+    .row
+      .col-12
+        .text-center.py-5
+          i.bi.bi-sticky.display-1.text-muted.mb-3
+          h3.text-muted No quick notes yet
+          p.text-muted Start jotting down your ideas and thoughts!
+          = link_to new_quick_note_path, class: "btn btn-primary mt-3" do
+            i.bi.bi-plus-lg.me-1
+            | Create Your First Note

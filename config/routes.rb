@@ -26,7 +26,11 @@ Rails.application.routes.draw do
   # This creates routes like /api/tasks
   namespace :api do
     # Task resource routes (standard RESTful)
-    resources :tasks, only: [:index, :show, :create, :update, :destroy]
+    resources :tasks, only: [:index, :show, :create, :update, :destroy] do
+      member do
+        post :touch_last_worked
+      end
+    end
     
     # Stats endpoint - matches Node.js /api/stats
     # get 'stats', to: 'tasks#stats' creates GET /api/stats
@@ -37,6 +41,17 @@ Rails.application.routes.draw do
     namespace :sparky do
       get 'status', to: 'status#show'
     end
+    
+    # AI Provider Balance endpoints
+    # GET /api/balances - Current balances from all providers
+    # POST /api/balances/refresh - Force refresh and record to database
+    # GET /api/balances/history - Balance history for charting
+    resources :balances, only: [:index, :show] do
+      collection do
+        post :refresh
+        get :history
+      end
+    end
   end
   
   # HTML routes for the Kanban board interface
@@ -44,11 +59,23 @@ Rails.application.routes.draw do
     # Member routes for task actions
     # POST /tasks/:id/move_left  -> moves to previous status
     # POST /tasks/:id/move_right -> moves to next status
+    # POST /tasks/:id/restore    -> restores from archive
     member do
       post :move_left
       post :move_right
+      post :restore
+    end
+    
+    # Collection routes for task listings
+    # GET /tasks/archived -> lists archived (soft-deleted) tasks
+    collection do
+      get :archived
     end
   end
+  
+  # Quick Notes routes - for quick ideas and scratchpad
+  # Full RESTful routes: index, show, new, create, edit, update, destroy
+  resources :quick_notes
   
   # User management (super_admin only, enforced by Pundit)
   resources :users

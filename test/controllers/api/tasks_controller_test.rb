@@ -216,4 +216,132 @@ class Api::TasksControllerTest < ActionDispatch::IntegrationTest
     get api_task_url(id: task_id), as: :json
     assert_response :not_found
   end
+
+  # ==========================================================================
+  # LAST_WORKED_ON API TESTS
+  # ==========================================================================
+
+  test "GET /api/tasks/:id includes last_worked_on in response" do
+    freeze_time = Time.current
+    @task.update!(last_worked_on: freeze_time)
+    
+    get api_task_url(@task), as: :json
+    
+    assert_response :success
+    json = JSON.parse(@response.body)
+    assert json.key?("last_worked_on")
+    assert_equal freeze_time.iso8601(3), json["last_worked_on"]
+  end
+
+  test "GET /api/tasks/:id returns null last_worked_on when not set" do
+    @task.update!(last_worked_on: nil)
+    
+    get api_task_url(@task), as: :json
+    
+    assert_response :success
+    json = JSON.parse(@response.body)
+    assert_nil json["last_worked_on"]
+  end
+
+  test "GET /api/tasks includes last_worked_on in each task" do
+    @task.update!(last_worked_on: 2.days.ago)
+    
+    get api_tasks_url, as: :json
+    
+    assert_response :success
+    json = JSON.parse(@response.body)
+    task = json.find { |t| t["id"] == @task.id }
+    assert task.key?("last_worked_on")
+    assert_not_nil task["last_worked_on"]
+  end
+
+  test "POST /api/tasks/:id/touch_last_worked updates last_worked_on" do
+    @task.update!(last_worked_on: nil)
+    freeze_time = Time.current
+    
+    travel_to freeze_time do
+      post touch_last_worked_api_task_url(@task), as: :json
+    end
+    
+    assert_response :success
+    @task.reload
+    assert_equal freeze_time.to_i, @task.last_worked_on.to_i
+  end
+
+  test "POST /api/tasks/:id/touch_last_worked returns success response" do
+    post touch_last_worked_api_task_url(@task), as: :json
+    
+    assert_response :success
+    json = JSON.parse(@response.body)
+    assert json["success"]
+    assert json["last_worked_on"]
+    assert_match(/marked as worked on/, json["message"])
+  end
+
+  test "POST /api/tasks/:id/touch_last_worked returns 404 for missing task" do
+    post touch_last_worked_api_task_url(id: 99999), as: :json
+    
+    assert_response :not_found
+  end
+
+  test "PATCH /api/tasks/:id updates last_worked_on when status changes" do
+    @task.update!(status: "backlog", last_worked_on: nil)
+    freeze_time = Time.current
+    
+    travel_to freeze_time do
+      patch api_task_url(@task), params: { status: "in_progress" }, as: :json
+    end
+    
+    assert_response :success
+    @task.reload
+    assert_equal freeze_time.to_i, @task.last_worked_on.to_i
+  end
+
+  test "PATCH /api/tasks/:id updates last_worked_on when assignee changes" do
+    @task.update!(assignee: "mechdog", last_worked_on: nil)
+    freeze_time = Time.current
+    
+    travel_to freeze_time do
+      patch api_task_url(@task), params: { assignee: "sparky" }, as: :json
+    end
+    
+    assert_response :success
+    @task.reload
+    assert_equal freeze_time.to_i, @task.last_worked_on.to_i
+  end
+
+  test "PATCH /api/tasks/:id does not update last_worked_on for title changes" do
+    original_time = 1.day.ago
+    @task.update!(last_worked_on: original_time)
+    
+    patch api_task_url(@task), params: { title: "Updated Title" }, as: :json
+    
+    assert_response :success
+    @task.reload
+    assert_equal original_time.to_i, @task.last_worked_on.to_i
+  end
+
+  test "PATCH /api/tasks/:id can directly set last_worked_on" do
+    custom_time = 3.days.ago.iso8601(3)
+    
+    patch api_task_url(@task), params: { last_worked_on: custom_time }, as: :json
+    
+    assert_response :success
+    @task.reload
+    assert_equal custom_time, @task.last_worked_on.iso8601(3)
+  end
+
+  test "POST /api/tasks can set last_worked_on on create" do
+    custom_time = 2.days.ago
+    
+    post api_tasks_url, params: {
+      title: "Task with Last Worked",
+      assignee: "sparky",
+      last_worked_on: custom_time
+    }, as: :json
+    
+    assert_response :created
+    json = JSON.parse(@response.body)
+    assert_equal custom_time.iso8601(3), json["last_worked_on"]
+  end
 end

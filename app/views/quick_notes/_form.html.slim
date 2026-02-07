@@ -1,0 +1,66 @@
+/ ============================================================================
+/ Partial: Quick Note Form
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This partial is shared between new.html.slim and edit.html.slim
+/ It renders the form fields for creating/editing a quick note.
+/
+/ LEARNING NOTE ABOUT PARTIALS:
+# - Partials are reusable template fragments
+# - They start with underscore (_) in filename
+# - They're rendered with render 'partial_name', locals: { ... }
+#
+/ ============================================================================
+
+= form_with model: quick_note, local: true, class: "needs-validation" do |f|
+  / --------------------------------------------------------------------------
+  / Error Display
+  / --------------------------------------------------------------------------
+  - if quick_note.errors.any?
+    .alert.alert-danger
+      h4.alert-heading
+        i.bi.bi-exclamation-triangle-fill.me-2
+        | = pluralize(quick_note.errors.count, "error")
+        |  prevented this note from being saved:
+      ul.mb-0
+        - quick_note.errors.full_messages.each do |message|
+          li = message
+
+  / --------------------------------------------------------------------------
+  / Title Field
+  / --------------------------------------------------------------------------
+  .mb-3
+    = f.label :title, class: "form-label"
+      | Title
+      span.text-danger *
+    = f.text_field :title, 
+        class: "form-control", 
+        placeholder: "Enter a quick title...",
+        required: true,
+        maxlength: 255
+    .form-text A brief title to identify your note.
+
+  / --------------------------------------------------------------------------
+  / Content Field
+  / --------------------------------------------------------------------------
+  .mb-3
+    = f.label :content, class: "form-label"
+      | Content
+    = f.text_area :content, 
+        class: "form-control", 
+        rows: 6,
+        placeholder: "Jot down your thoughts, ideas, or reminders here..."
+    .form-text Optional details. You can leave this blank for a simple reminder.
+
+  / --------------------------------------------------------------------------
+  / Submit Button
+  / --------------------------------------------------------------------------
+  .d-flex.gap-2
+    = f.submit class: "btn btn-primary" do
+      i.bi.bi-check-lg.me-1
+      = quick_note.new_record? ? "Create Note" : "Update Note"
+    
+    = link_to quick_notes_path, class: "btn btn-outline-secondary" do
+      | Cancel

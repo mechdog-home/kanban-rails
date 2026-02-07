@@ -79,6 +79,24 @@ class TasksControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "show displays task ID" do
+    skip "Requires asset pipeline" if ENV["CI"]
+    get task_url(@task)
+    assert_response :success
+
+    # Should display the task ID with # prefix in the response
+    assert_includes @response.body, "##{@task.id}"
+  end
+
+  test "show has task-id-badge-large CSS class" do
+    skip "Requires asset pipeline" if ENV["CI"]
+    get task_url(@task)
+    assert_response :success
+
+    # Should have the task-id-badge-large class for styling
+    assert_includes @response.body, "task-id-badge-large"
+  end
+
   # ==========================================================================
   # NEW TESTS
   # ==========================================================================
@@ -175,22 +193,32 @@ class TasksControllerTest < ActionDispatch::IntegrationTest
   end
 
   # ==========================================================================
-  # DESTROY TESTS
+  # DESTROY (ARCHIVE) TESTS
   # ==========================================================================
 
-  test "should destroy task" do
+  test "should archive task on destroy" do
+    # Soft delete: task is hidden from default scope (count decreases by 1)
+    # But task still exists in database (unscoped count stays same)
     assert_difference("Task.count", -1) do
       delete task_url(@task)
     end
     
+    # But task is now archived
+    @task.reload
+    assert_equal true, @task.archived?
+    
     assert_redirected_to tasks_url
   end
 
-  test "destroyed task no longer exists" do
+  test "archived task is excluded from default scope" do
     delete task_url(@task)
     
+    # Task is excluded from default scope (appears deleted)
     assert_raises(ActiveRecord::RecordNotFound) do
       Task.find(@task.id)
     end
+    
+    # But still exists in database
+    assert Task.unscoped.find(@task.id)
   end
 end

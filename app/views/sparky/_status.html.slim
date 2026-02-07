@@ -48,11 +48,17 @@
             - bar_class = percent > 80 ? 'bg-danger' : (percent > 50 ? 'bg-warning' : 'bg-success')
             .progress-bar class=bar_class style="width: #{percent}%"
           span.small #{percent}%
+        - if status[:data_stale]
+          .small.text-warning.mt-1
+            i.bi.bi-exclamation-triangle-fill.me-1
+            | Stale data
       
       / Model
       .col-6
         .small.text-muted Model
         .small.text-truncate = status[:model]&.split('/')&.last || 'Unknown'
+        - if status[:context_approx]
+          .small.text-muted = "~#{status[:context_approx]} tokens"
       
       / Current Task
       - if status[:current_task]
@@ -61,12 +67,18 @@
           .small.fw-bold.text-truncate = status[:current_task][:title]
           .small.text-muted = status[:current_task][:status]&.titleize
       
-      / Last Updated
+      / Last Updated - shows time since last activity (DB or file)
       .col-12.text-end
-        .small.text-muted
+        - last_update = status[:last_activity_at] || status[:timestamp]
+        .small.text-muted title="Last activity: #{last_update}"
           i.bi.bi-clock.me-1
-          = time_ago_in_words(status[:timestamp]) rescue "just now"
-          |  ago
+          - if last_update
+            = time_ago_in_words(last_update)
+            |  ago
+            - if status[:data_stale]
+              span.text-warning.ms-1 (stale)
+          - else
+            | Unknown
   
   / Hidden data for Stimulus controller
   / These data attributes pass server data to JavaScript

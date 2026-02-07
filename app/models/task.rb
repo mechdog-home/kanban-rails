@@ -24,6 +24,21 @@
 # ============================================================================
 
 class Task < ApplicationRecord
+  # Include view helpers for time formatting
+  include ActionView::Helpers::DateHelper
+
+  # ==========================================================================
+  # CALLBACKS
+  # ==========================================================================
+  #
+  # Update last_worked_on when task is modified (if it was a meaningful change)
+  after_update :touch_last_worked_if_status_changed
+  
+  # Track activities for audit trail
+  # after_create :log_creation_activity
+  # after_update :log_update_activity
+  # after_destroy :log_deletion_activity
+  
   # ==========================================================================
   # ASSOCIATIONS
   # ==========================================================================
@@ -33,6 +48,10 @@ class Task < ApplicationRecord
   # of existing data and API access).
   
   belongs_to :user, optional: true
+  
+  # Task has many activities (audit trail)
+  # dependent: :destroy ensures activities are deleted when task is deleted
+  has_many :activities, class_name: 'TaskActivity', dependent: :destroy
 
   # ==========================================================================
   # CONSTANTS
@@ -89,6 +108,34 @@ class Task < ApplicationRecord
   # Usage: Task.with_priority('high')
   scope :with_priority, ->(priority) { where(priority: priority) }
   
+  # ==========================================================================
+  # ARCHIVED SCOPES (Soft Deletion)
+  # ==========================================================================
+  #
+  # LEARNING NOTE: Instead of permanently deleting tasks, we "archive" them.
+  # This is called "soft deletion" and provides several benefits:
+  # - Recovery of accidentally deleted tasks
+  # - Historical record of all work
+  # - Ability to review and restore old tasks
+  #
+  # The default scope excludes archived tasks so the main board stays clean.
+  
+  # Default scope: exclude archived tasks from all queries
+  # This ensures archived tasks don't appear on the main kanban board
+  default_scope { where(archived: false) }
+  
+  # Scope to show only archived (soft-deleted) tasks
+  # Usage: Task.archived
+  scope :archived, -> { unscoped.where(archived: true) }
+  
+  # Scope to show only active (non-archived) tasks
+  # Usage: Task.active (same as default, but explicit)
+  scope :active, -> { where(archived: false) }
+  
+  # Scope to include both archived and active (bypass default scope)
+  # Usage: Task.with_archived
+  scope :with_archived, -> { unscoped }
+  
   # Get tasks in sprint (priority queue)
   scope :sprint, -> { with_status('sprint') }
   
@@ -114,6 +161,12 @@ class Task < ApplicationRecord
   scope :by_priority, -> {
     order(Arel.sql("FIELD(priority, 'urgent', 'high', 'medium', 'low')"))
   }
+  
+  # Order by last worked on (most recent first)
+  scope :by_last_worked, -> { order(last_worked_on: :desc) }
+  
+  # Find dormant tasks (not worked on in last 7 days)
+  scope :dormant, -> { where('last_worked_on < ? OR last_worked_on IS NULL', 7.days.ago) }
 
   # ==========================================================================
   # CLASS METHODS
@@ -178,5 +231,83 @@ class Task < ApplicationRecord
     current_index = STATUSES.index(status)
     return nil if current_index.nil? || current_index <= 0
     STATUSES[current_index - 1]
+  end
+  
+  # ==========================================================================
+  # ARCHIVE/RESTORE METHODS (Soft Deletion)
+  # ==========================================================================
+  
+  # Archive this task (soft delete)
+  # Instead of destroying the record, we mark it as archived
+  # This allows recovery and maintains history
+  def archive!
+    update_column(:archived, true)
+  end
+  
+  # Restore this task from archive (unarchive)
+  # Makes the task visible on the main kanban board again
+  def restore!
+    update_column(:archived, false)
+  end
+  
+  # Check if this task is archived
+  def archived?
+    archived == true
+  end
+
+  # Update last_worked_on timestamp when Sparky works on this task
+  def touch_last_worked!
+    update_column(:last_worked_on, Time.current)
+  end
+
+  # Check if task is dormant (not worked on in last 7 days)
+  def dormant?
+    return false if last_worked_on.nil?
+    last_worked_on < 7.days.ago
+  end
+
+  # Human-readable time since last work
+  def time_since_work
+    return "Never" if last_worked_on.nil?
+    time_ago_in_words(last_worked_on) + " ago"
+  end
+  
+  # ==========================================================================
+  # ACTIVITY LOGGING METHODS
+  # ==========================================================================
+  #
+  # These methods create activity records for the audit trail.
+  # They're called by controller actions to track who made what changes.
+  
+  # Log task creation
+  def log_creation_activity(user = nil)
+    TaskActivity.log_creation(self, user)
+  end
+  
+  # Log task update with field changes
+  def log_update_activity(user = nil)
+    # saved_changes is a Rails method that returns hash of changed fields
+    # Format: { "field" => [old_value, new_value] }
+    changes = saved_changes.slice('title', 'description', 'status', 'assignee', 'priority')
+    TaskActivity.log_update(self, changes, user) if changes.any?
+  end
+  
+  # Log task deletion (called before_destroy)
+  def log_deletion_activity(user = nil)
+    TaskActivity.log_deletion(self, user)
+  end
+  
+  # Get recent activities for this task
+  def recent_activities(limit = 50)
+    activities.recent(limit)
+  end
+  
+  private
+  
+  # Callback: Update last_worked_on when status or assignee changes
+  def touch_last_worked_if_status_changed
+    if saved_change_to_status? || saved_change_to_assignee?
+      update_column(:last_worked_on, Time.current)
+    end
   end
 end

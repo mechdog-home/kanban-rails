@@ -1,0 +1,114 @@
+/ ============================================================================
+/ View: Archived Tasks List
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This view displays all archived (soft-deleted) tasks.
+/ Archived tasks are hidden from the main kanban board but can be
+/ restored at any time. This provides a safety net against
+/ accidental deletion and maintains a historical record.
+/
+/ ACTIONS AVAILABLE:
+/ - View task details
+/ - Restore task (brings it back to the main board)
+/ - Permanently delete (optional future feature)
+/
+/ ============================================================================
+
+.container-fluid.px-4.py-3
+  / --------------------------------------------------------------------------
+  / Page Header
+  / --------------------------------------------------------------------------
+  .row.mb-4
+    .col-12
+      .d-flex.justify-content-between.align-items-center
+        .d-flex.align-items-center.gap-3
+          = link_to tasks_path, class: "btn btn-outline-secondary" do
+            i.bi.bi-arrow-left.me-1
+            | Back to Board
+          
+          h1.h3.mb-0
+            i.bi.bi-archive.me-2
+            | Archived Tasks
+            span.badge.bg-secondary.ms-2.fs-6 = @tasks.count
+        
+        / Filter by assignee (optional)
+        .btn-group
+          = link_to "All", archived_tasks_path, class: "btn btn-outline-secondary #{'active' unless params[:assignee].present?}"
+          = link_to "MechDog", archived_tasks_path(assignee: 'mechdog'), class: "btn btn-outline-secondary #{'active' if params[:assignee] == 'mechdog'}"
+          = link_to "Sparky", archived_tasks_path(assignee: 'sparky'), class: "btn btn-outline-secondary #{'active' if params[:assignee] == 'sparky'}"
+
+  / --------------------------------------------------------------------------
+  / Archived Tasks Table
+  / --------------------------------------------------------------------------
+  - if @tasks.any?
+    .row
+      .col-12
+        .card
+          .card-header.bg-secondary.text-white
+            h5.mb-0 
+              i.bi.bi-archive.me-2
+              | Archived Task List
+          .card-body.p-0
+            .table-responsive
+              table.table.table-hover.table-striped.mb-0
+                thead
+                  tr
+                    th ID
+                    th Title
+                    th Assignee
+                    th Status
+                    th Priority
+                    th Archived At
+                    th.text-end Actions
+                tbody
+                  - @tasks.each do |task|
+                    tr
+                      td 
+                        span.badge.bg-secondary ##{task.id}
+                      td
+                        = link_to task.title, task_path(task), class: "text-decoration-none"
+                        - if task.description.present?
+                          small.text-muted.d-block = truncate(task.description, length: 60)
+                      td
+                        - if task.assignee == "mechdog"
+                          span.badge.bg-primary
+                            i.bi.bi-robot.me-1
+                            | MechDog
+                        - else
+                          span.badge.bg-warning.text-dark
+                            i.bi.bi-lightning-charge-fill.me-1
+                            | Sparky
+                      td
+                        span.badge class="bg-#{status_color(task.status)}"
+                          = task.status.titleize.gsub("_", " ")
+                      td
+                        span.badge class="bg-#{priority_color(task.priority)}"
+                          = task.priority.titleize
+                      td.text-muted
+                        = time_ago_in_words(task.updated_at) + " ago"
+                      td.text-end
+                        .btn-group.btn-group-sm
+                          = link_to task_path(task), class: "btn btn-outline-primary", title: "View Details" do
+                            i.bi.bi-eye
+                          = button_to restore_task_path(task), method: :post, class: "btn btn-outline-success", title: "Restore Task", form: { class: "d-inline" } do
+                            i.bi.bi-arrow-counterclockwise
+
+  / --------------------------------------------------------------------------
+  / Empty State
+  / --------------------------------------------------------------------------
+  - else
+    .row
+      .col-12
+        .card.text-center.py-5
+          .card-body
+            i.bi.bi-archive.display-1.text-muted.mb-3
+            h4.text-muted No Archived Tasks
+            p.text-muted
+              | When you delete tasks from the kanban board, they will appear here.
+              br
+              | Archived tasks can be restored at any time.
+            = link_to tasks_path, class: "btn btn-primary mt-3" do
+              i.bi.bi-kanban.me-2
+              | Back to Kanban Board

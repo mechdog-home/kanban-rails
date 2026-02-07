@@ -65,6 +65,18 @@ class TaskPolicy < ApplicationPolicy
     # Any logged-in user can move tasks
     user.present?
   end
+  
+  # Can the user view archived tasks list?
+  def archived?
+    # Any logged-in user can view archived tasks
+    user.present?
+  end
+  
+  # Can the user restore an archived task?
+  def restore?
+    # Same rules as destroy - creator can restore, or anyone if no owner
+    record.user == user || record.user.nil?
+  end
 
   # -------------------------------------------------------------------------
   # Scope: Which tasks can this user see?

@@ -10,17 +10,61 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_31_122109) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_07_185300) do
+  create_table "api_balance_histories", force: :cascade do |t|
+    t.decimal "balance", precision: 15, scale: 6, default: "0.0", null: false
+    t.datetime "created_at", null: false
+    t.string "currency", default: "USD", null: false
+    t.text "error_message"
+    t.json "metadata", default: {}, null: false
+    t.string "provider", null: false
+    t.datetime "queried_at", null: false
+    t.boolean "success", default: true, null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider", "queried_at"], name: "index_api_balance_histories_on_provider_and_queried_at", order: { queried_at: :desc }
+    t.index ["queried_at"], name: "index_api_balance_histories_on_queried_at"
+  end
+
+  create_table "quick_notes", force: :cascade do |t|
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["created_at"], name: "index_quick_notes_on_created_at"
+    t.index ["updated_at"], name: "index_quick_notes_on_updated_at"
+    t.index ["user_id"], name: "index_quick_notes_on_user_id"
+  end
+
+  create_table "task_activities", force: :cascade do |t|
+    t.string "activity_type", null: false
+    t.json "changeset", default: {}
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "task_id", null: false
+    t.integer "user_id"
+    t.index ["activity_type"], name: "index_task_activities_on_activity_type"
+    t.index ["task_id", "created_at"], name: "index_task_activities_on_task_id_and_created_at", order: { created_at: :desc }
+    t.index ["task_id"], name: "index_task_activities_on_task_id"
+    t.index ["user_id"], name: "index_task_activities_on_user_id"
+  end
+
   create_table "tasks", force: :cascade do |t|
+    t.boolean "archived", default: false, null: false
     t.string "assignee", null: false
     t.datetime "created_at", null: false
     t.text "description"
+    t.datetime "last_worked_on"
     t.string "priority", default: "medium", null: false
     t.string "status", default: "backlog", null: false
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id"
+    t.index ["archived", "assignee"], name: "index_tasks_on_archived_and_assignee"
+    t.index ["archived", "status"], name: "index_tasks_on_archived_and_status"
+    t.index ["archived"], name: "index_tasks_on_archived"
     t.index ["assignee"], name: "index_tasks_on_assignee"
+    t.index ["last_worked_on"], name: "index_tasks_on_last_worked_on"
     t.index ["status"], name: "index_tasks_on_status"
     t.index ["user_id"], name: "index_tasks_on_user_id"
   end
@@ -42,5 +86,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_31_122109) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  add_foreign_key "quick_notes", "users"
+  add_foreign_key "task_activities", "tasks"
+  add_foreign_key "task_activities", "users"
   add_foreign_key "tasks", "users"
 end

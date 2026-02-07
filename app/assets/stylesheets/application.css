@@ -10,6 +10,35 @@
  */
 
 /* ============================================================================
+ * Task ID Badge Styles
+ * ============================================================================
+ *
+ * These styles display task ID numbers on task cards for easy reference.
+ * The badges are small, subtle, so MechDog can easily reference tasks by number.
+ */
+
+/* Small badge for task cards on the kanban board */
+.task-id-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  background-color: var(--bs-tertiary-bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  opacity: 0.8;
+}
+
+/* Larger badge for detail view */
+.task-id-badge-large {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  background-color: var(--bs-tertiary-bg);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* ============================================================================
  * Config Viewer - Markdown Content Styles
  * ============================================================================ */
 

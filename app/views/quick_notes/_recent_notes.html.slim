@@ -1,0 +1,53 @@
+/ ============================================================================
+/ Partial: Recent Quick Notes (for Kanban Board)
+/ ============================================================================
+/
+/ LEARNING NOTES:
+/
+/ This partial displays recent quick notes on the kanban board.
+/ It's designed to be compact and fit in a sidebar or section of the board.
+/
+/ The partial takes a local variable:
+/   - quick_notes: The collection of QuickNote records to display
+/
+/ ============================================================================
+
+.quick-notes-section.mb-4
+  / Header with link to full list
+  .d-flex.justify-content-between.align-items-center.mb-3
+    h5.mb-0
+      i.bi.bi-sticky.me-2.text-info
+      | Quick Notes
+      - if quick_notes.count > 0
+        span.badge.bg-secondary.ms-2 = quick_notes.count
+    
+    = link_to quick_notes_path, class: "btn btn-sm btn-outline-info" do
+      i.bi.bi-list.me-1
+      | View All
+
+  / Notes list (compact)
+  - if quick_notes.any?
+    .list-group.list-group-flush
+      - quick_notes.each do |note|
+        = link_to edit_quick_note_path(note), 
+            class: "list-group-item list-group-item-action p-2 border-start border-3 #{note.age_css_class}" do
+          .d-flex.w-100.justify-content-between
+            h6.mb-1.text-truncate = note.title
+            small.text-muted = note.time_since_update
+          - if note.content.present?
+            p.mb-0.small.text-muted.text-truncate = note.preview(60)
+
+    / Add new note button (compact)
+    .mt-2
+      = link_to new_quick_note_path, class: "btn btn-sm btn-outline-primary w-100" do
+        i.bi.bi-plus-lg.me-1
+        | Add Note
+        
+  - else
+    / Empty state
+    .text-center.py-3.border.rounded.bg-light
+      i.bi.bi-sticky.text-muted.mb-2 style="font-size: 1.5rem;"
+      p.small.text-muted.mb-2 No quick notes yet
+      = link_to new_quick_note_path, class: "btn btn-sm btn-primary" do
+        i.bi.bi-plus-lg.me-1
+        | Add Note

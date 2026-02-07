@@ -43,10 +43,14 @@ class TasksController < ApplicationController
   
   # Find the task before show, update, and destroy actions
   # Added :move_left and :move_right for status transitions
+  # Added :archive, :restore for soft deletion
   before_action :set_task, only: [:show, :edit, :update, :destroy, :move_left, :move_right]
   
+  # Find task including archived for restore action
+  before_action :set_task_with_archived, only: [:restore]
+  
   # Authorize with Pundit (for HTML requests with a logged-in user)
-  after_action :verify_authorized, except: :index, unless: -> { request.format.json? }
+  after_action :verify_authorized, except: [:index, :archived], unless: -> { request.format.json? }
   after_action :verify_policy_scoped, only: :index, unless: -> { request.format.json? }
 
   # ==========================================================================
@@ -76,6 +80,10 @@ class TasksController < ApplicationController
     # Order by most recently updated
     @tasks = @tasks.recent
     
+    # Load recent quick notes for display on the kanban board
+    # Only load for HTML format (kanban board view)
+    @recent_quick_notes = QuickNote.recent_for_board(5) unless request.format.json?
+    
     respond_to do |format|
       format.html # Renders app/views/tasks/index.html.slim
       format.json { render json: @tasks }
@@ -86,10 +94,13 @@ class TasksController < ApplicationController
   # GET /tasks/:id
   # ==========================================================================
   #
-  # Show a single task.
+  # Show a single task with activity history.
   #
   def show
     authorize @task unless request.format.json?
+    
+    # Load recent activities for the task detail view
+    @activities = @task.recent_activities(20)
     
     respond_to do |format|
       format.html # Renders app/views/tasks/show.html.slim
@@ -143,6 +154,9 @@ class TasksController < ApplicationController
     
     respond_to do |format|
       if @task.save
+        # Log the creation activity
+        @task.log_creation_activity(current_user)
+        
         format.html { redirect_to tasks_path, notice: 'Task was successfully created.' }
         format.json { render json: @task, status: :created }
       else
@@ -165,6 +179,9 @@ class TasksController < ApplicationController
     
     respond_to do |format|
       if @task.update(task_params)
+        # Log the update activity with changes
+        @task.log_update_activity(current_user)
+        
         format.html { redirect_to tasks_path, notice: 'Task was successfully updated.' }
         format.json { render json: @task }
       else
@@ -178,16 +195,82 @@ class TasksController < ApplicationController
   # DELETE /tasks/:id
   # ==========================================================================
   #
-  # Delete a task.
+  # Archive a task (soft delete).
+  # Instead of permanently deleting, we set archived=true.
+  # This allows recovery and maintains history.
   #
   def destroy
     authorize @task unless request.format.json?
     
-    @task.destroy
+    # Archive the task instead of destroying
+    # This is "soft deletion" - the task still exists but is hidden from the main board
+    @task.archive!
+    
+    # Log the archive activity
+    TaskActivity.create!(
+      task: @task,
+      activity_type: 'archived',
+      description: "Task archived by #{current_user&.username || 'system'}",
+      user: current_user
+    )
     
     respond_to do |format|
-      format.html { redirect_to tasks_path, notice: 'Task was successfully deleted.' }
+      format.html { redirect_to tasks_path, notice: 'Task was successfully archived.' }
       format.json { head :no_content }
+      format.turbo_stream do
+        render turbo_stream: [
+          # Remove the task card from the board
+          turbo_stream.remove(@task),
+          # Update the archived count badge
+          turbo_stream.replace("archived_count", partial: "tasks/archived_count")
+        ]
+      end
+    end
+  end
+
+  # ==========================================================================
+  # GET /tasks/archived
+  # ==========================================================================
+  #
+  # List all archived tasks.
+  # This is a separate view from the main kanban board.
+  # Archived tasks are soft-deleted tasks that can be restored.
+  #
+  def archived
+    # Use unscoped to bypass default scope and find archived tasks
+    @tasks = Task.archived.recent
+    
+    # Apply filters if provided
+    @tasks = @tasks.for_assignee(params[:assignee]) if params[:assignee].present?
+    @tasks = @tasks.with_status(params[:status]) if params[:status].present?
+    
+    authorize Task unless request.format.json?
+  end
+
+  # ==========================================================================
+  # POST /tasks/:id/restore
+  # ==========================================================================
+  #
+  # Restore an archived task (unarchive).
+  # Brings the task back to the main kanban board.
+  #
+  def restore
+    authorize @task unless request.format.json?
+    
+    # Restore the task by unarchiving it
+    @task.restore!
+    
+    # Log the restore activity
+    TaskActivity.create!(
+      task: @task,
+      activity_type: 'restored',
+      description: "Task restored by #{current_user&.username || 'system'}",
+      user: current_user
+    )
+    
+    respond_to do |format|
+      format.html { redirect_to archived_tasks_path, notice: 'Task was successfully restored.' }
+      format.json { render json: @task }
     end
   end
 
@@ -237,6 +320,9 @@ class TasksController < ApplicationController
     previous = @task.previous_status
     
     if previous && @task.update(status: previous)
+      # Log the status change
+      @task.log_update_activity(current_user)
+      
       respond_to do |format|
         # Turbo Stream response - updates the page automatically
         format.turbo_stream do
@@ -289,6 +375,9 @@ class TasksController < ApplicationController
     next_stat = @task.next_status
     
     if next_stat && @task.update(status: next_stat)
+      # Log the status change
+      @task.log_update_activity(current_user)
+      
       respond_to do |format|
         # Turbo Stream response - updates the page automatically
         format.turbo_stream do
@@ -344,6 +433,17 @@ class TasksController < ApplicationController
       format.json { render json: { error: 'Task not found' }, status: :not_found }
     end
   end
+  
+  # Find task including archived ones
+  # Called by before_action for restore action
+  def set_task_with_archived
+    @task = Task.with_archived.find(params[:id])
+  rescue ActiveRecord::RecordNotFound
+    respond_to do |format|
+      format.html { redirect_to archived_tasks_path, alert: 'Task not found.' }
+      format.json { render json: { error: 'Task not found' }, status: :not_found }
+    end
+  end
 
   # Strong parameters - only allow these attributes to be set
   #
@@ -355,10 +455,44 @@ class TasksController < ApplicationController
   # - Rails: Strong parameters provide a declarative whitelist
   #
   def task_params
-    params.require(:task).permit(:title, :description, :assignee, :status, :priority)
+    params.require(:task).permit(:title, :description, :assignee, :status, :priority, :last_worked_on)
   rescue ActionController::ParameterMissing
     # Allow params without :task wrapper for API convenience
-    params.permit(:title, :description, :assignee, :status, :priority)
+    params.permit(:title, :description, :assignee, :status, :priority, :last_worked_on)
+  end
+
+  # ==========================================================================
+  # Helper: Fetch API Balances for View
+  # ==========================================================================
+  #
+  # This helper makes AI provider balances available to views.
+  # It's called by the index view to render the balance section.
+  #
+  helper_method :fetch_api_balances
+  def fetch_api_balances
+    # Use cached balances from database if available and fresh (< 10 min old)
+    latest = ApiBalanceHistory.latest_balances
+    
+    # If we have recent data, use it; otherwise query live
+    if latest.values.any? { |v| v[:queried_at] && v[:queried_at] > 10.minutes.ago }
+      # Transform to same format as live query
+      latest.transform_values do |data|
+        {
+          success: data[:success],
+          balance: data[:balance],
+          currency: data[:currency],
+          queried_at: data[:queried_at],
+          supports_api: true
+        }
+      end
+    else
+      # Fall back to live query
+      BalanceService.query_all
+    end
+  rescue => e
+    Rails.logger.error("Error fetching API balances: #{e.message}")
+    # Return empty hash on error - view will handle gracefully
+    {}
   end
 
   # ==========================================================================
@@ -368,17 +502,24 @@ class TasksController < ApplicationController
   # This helper makes Sparky status available to views.
   # It's called by the index view to render the status card.
   #
+  # LIVE DATA STRATEGY:
+  # - Task info comes from the database (always live)
+  # - Context/model comes from usage-log.json, but we also check database
+  #   activity to determine if Sparky is actually active
+  # - Uses the most recent data between file and database
+  #
   helper_method :fetch_sparky_status
   def fetch_sparky_status
-    # Call the Sparky Status API internally
-    # In production, you might cache this
     begin
-      # Get current task (sprint or in_progress assigned to sparky)
+      # ======================================================================
+      # STEP 1: Get current task from database (always live)
+      # ======================================================================
       sprint_task = Task.for_assignee('sparky').with_status('sprint').first
       in_progress_task = Task.for_assignee('sparky').with_status('in_progress').first
       
       current_task = nil
-      status = 'idle'
+      task_status = 'idle'
+      last_task_update = nil
       
       if sprint_task
         current_task = {
@@ -388,7 +529,8 @@ class TasksController < ApplicationController
           status: sprint_task.status,
           priority: sprint_task.priority
         }
-        status = 'sprint'
+        task_status = 'sprint'
+        last_task_update = sprint_task.updated_at
       elsif in_progress_task
         current_task = {
           id: in_progress_task.id,
@@ -397,29 +539,68 @@ class TasksController < ApplicationController
           status: in_progress_task.status,
           priority: in_progress_task.priority
         }
-        status = 'in_progress'
+        task_status = 'in_progress'
+        last_task_update = in_progress_task.updated_at
       end
       
-      # Read usage log for context data
+      # ======================================================================
+      # STEP 2: Get usage data from file (may be stale)
+      # ======================================================================
       log_path = Rails.root.join('..', 'memory', 'usage-log.json')
-      context_percent = 0
-      model = 'moonshot/kimi-k2.5'
+      file_data = { context_percent: 0, model: 'moonshot/kimi-k2.5', file_timestamp: nil }
       
       if File.exist?(log_path)
         data = JSON.parse(File.read(log_path))
         sessions = data['sessions'] || []
         last_session = sessions.last || {}
-        context_percent = last_session['context_pct'] || 0
-        model = last_session['model'] || 'moonshot/kimi-k2.5'
+        file_data = {
+          context_percent: last_session['context_pct'] || 0,
+          model: last_session['model'] || 'moonshot/kimi-k2.5',
+          file_timestamp: last_session['timestamp'] ? Time.parse(last_session['timestamp']) : nil
+        }
       end
+      
+      # ======================================================================
+      # STEP 3: Check database for ACTUAL recent activity
+      # ======================================================================
+      # Get the most recent update to any Sparky task
+      sparky_task_update = Task.for_assignee('sparky').maximum(:updated_at)
+      # Get the most recent update to any task
+      any_task_update = Task.maximum(:updated_at)
+      
+      # Determine the most recent activity timestamp
+      last_activity = [sparky_task_update, any_task_update, file_data[:file_timestamp]].compact.max
+      
+      # ======================================================================
+      # STEP 4: Determine if Sparky is "active"
+      # ======================================================================
+      # Active if:
+      # - Has a current sprint/in_progress task, OR
+      # - Had database activity in the last 10 minutes, OR
+      # - Had file activity in the last 10 minutes
+      ten_minutes_ago = 10.minutes.ago
+      is_active = current_task.present? || 
+                  (last_activity && last_activity > ten_minutes_ago)
+      
+      # ======================================================================
+      # STEP 5: Build status response with live data
+      # ======================================================================
+      # Warn if file data is stale (> 30 minutes old)
+      data_stale = file_data[:file_timestamp].nil? || 
+                   file_data[:file_timestamp] < 30.minutes.ago
       
       {
         timestamp: Time.current.iso8601,
-        is_active: current_task.present?,
-        status: status,
+        is_active: is_active,
+        status: task_status,
         current_task: current_task,
-        context_percent: context_percent,
-        model: model
+        context_percent: file_data[:context_percent],
+        context_approx: "#{(file_data[:context_percent] * 2560 / 100)}k", # ~256k context window
+        model: file_data[:model],
+        last_activity_at: last_activity&.iso8601,
+        data_source: data_stale ? 'stale_file' : 'file',
+        data_stale: data_stale,
+        file_timestamp: file_data[:file_timestamp]&.iso8601
       }
     rescue => e
       Rails.logger.error("Error fetching Sparky status: #{e.message}")
@@ -430,7 +611,12 @@ class TasksController < ApplicationController
         status: 'idle',
         current_task: nil,
         context_percent: 0,
-        model: 'unknown'
+        context_approx: '0k',
+        model: 'unknown',
+        last_activity_at: nil,
+        data_source: 'error',
+        data_stale: true,
+        file_timestamp: nil
       }
     end
   end

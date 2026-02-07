@@ -155,7 +155,16 @@ module Api
     # Archives the task (soft delete) instead of permanent deletion
     def destroy
       @task.archive!
-      head :no_content
+      
+      # Check if client accepts Turbo Streams
+      if request.accepts.include?('text/vnd.turbo-stream.html')
+        render turbo_stream: [
+          turbo_stream.remove(@task),
+          turbo_stream.replace("archived_count", partial: "tasks/archived_count")
+        ]
+      else
+        head :no_content
+      end
     rescue ActiveRecord::RecordNotFound
       render json: { error: 'Task not found' }, status: :not_found
     end
