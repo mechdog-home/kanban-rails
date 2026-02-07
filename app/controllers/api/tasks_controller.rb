@@ -32,9 +32,9 @@ module Api
     # Skip CSRF for API requests
     skip_before_action :verify_authenticity_token
     
-    # Find task before show, update, destroy
+    # Find task before show, update, destroy, touch_last_worked
     # Note: stats doesn't need set_task, so it's not in this list
-    before_action :set_task, only: [:show, :update, :destroy]
+    before_action :set_task, only: [:show, :update, :destroy, :touch_last_worked]
 
     # ========================================================================
     # GET /api/stats
@@ -152,9 +152,30 @@ module Api
     # ========================================================================
     # DELETE /api/tasks/:id
     # ========================================================================
+    # Archives the task (soft delete) instead of permanent deletion
     def destroy
-      @task.destroy
+      @task.archive!
       head :no_content
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: 'Task not found' }, status: :not_found
+    end
+
+    # ========================================================================
+    # POST /api/tasks/:id/touch_last_worked
+    # ========================================================================
+    #
+    # Updates the last_worked_on timestamp to now.
+    # Call this when Sparky works on a task to track activity.
+    #
+    def touch_last_worked
+      @task.touch_last_worked!
+      render json: { 
+        success: true, 
+        last_worked_on: @task.last_worked_on,
+        message: "Task #{@task.id} marked as worked on"
+      }
+    rescue ActiveRecord::RecordNotFound
+      render json: { error: 'Task not found' }, status: :not_found
     end
 
     private
@@ -169,10 +190,13 @@ module Api
       # Support both flat params (Node.js style) and nested params (Rails convention)
       # Node.js API sends: {"title": "...", "assignee": "..."}
       # Rails convention:  {"task": {"title": "...", "assignee": "..."}}
+      #
+      # Note: last_worked_on can be set directly for backdating or manual entry,
+      # but typically use POST /api/tasks/:id/touch_last_worked to set it to now
       if params[:task].present?
-        params.require(:task).permit(:title, :description, :assignee, :status, :priority)
+        params.require(:task).permit(:title, :description, :assignee, :status, :priority, :last_worked_on)
       else
-        params.permit(:title, :description, :assignee, :status, :priority)
+        params.permit(:title, :description, :assignee, :status, :priority, :last_worked_on)
       end
     end
   end
