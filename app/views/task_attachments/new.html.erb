@@ -1,0 +1,88 @@
+<!-- ============================================================================
+  View: task_attachments/new.html.erb
+  ============================================================================
+  
+  Upload form for task attachments.
+  Uses multipart/form-data for file uploads.
+  
+  ============================================================================ -->
+
+<div class="container mt-4">
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <!-- Page Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Upload File to Task #<%= @task.id %></h1>
+        <%= link_to "Back to Task", task_path(@task), class: "btn btn-secondary" %>
+      </div>
+      
+      <!-- Task Info Card -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><%= @task.title %></h5>
+        </div>
+        <div class="card-body">
+          <p class="card-text"><%= @task.description&.truncate(200) || "No description" %></p>
+        </div>
+      </div>
+      
+      <!-- Upload Form -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Select File</h5>
+        </div>
+        <div class="card-body">
+          <%= form_with(model: [@task, @attachment], local: true, html: { multipart: true }) do |form| %>
+            <% if @attachment.errors.any? %>
+              <div class="alert alert-danger">
+                <h6><%= pluralize(@attachment.errors.count, "error") %> prevented this upload:</h6>
+                <ul class="mb-0">
+                  <% @attachment.errors.full_messages.each do |message| %>
+                    <li><%= message %></li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+            
+            <!-- File Input -->
+            <div class="mb-3">
+              <%= form.label :file, "File", class: "form-label" %>
+              <%= form.file_field :file, class: "form-control", required: true, accept: ".md,.markdown,.txt,.pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.csv,.json" %>
+              <div class="form-text">
+                Allowed: Images (JPG, PNG, GIF, WebP), Documents (PDF, DOC, DOCX), 
+                Text files (MD, TXT, CSV, JSON). Max 10MB.
+              </div>
+            </div>
+            
+            <!-- Description -->
+            <div class="mb-3">
+              <%= form.label :description, "Description (optional)", class: "form-label" %>
+              <%= form.text_field :description, class: "form-control", placeholder: "e.g., Reference documentation, Screenshot, etc." %>
+            </div>
+            
+            <!-- Submit Button -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+              <%= link_to "Cancel", task_path(@task), class: "btn btn-outline-secondary" %>
+              <%= form.submit "Upload File", class: "btn btn-primary" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Tips Card -->
+      <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="bi bi-lightbulb"></i> Tips</h6>
+        </div>
+        <div class="card-body">
+          <ul class="mb-0">
+            <li>Add a description to help identify files later</li>
+            <li>Markdown (.md) files are great for detailed notes</li>
+            <li>Images can be viewed inline without downloading</li>
+            <li>All files are stored securely and backed up</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
