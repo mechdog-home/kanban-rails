@@ -30,6 +30,23 @@ Rails.application.routes.draw do
       member do
         post :touch_last_worked
       end
+      
+      # Nested attachment routes
+      # GET    /api/tasks/:task_id/attachments     -> List attachments
+      # POST   /api/tasks/:task_id/attachments     -> Upload attachment
+      resources :attachments, only: [:index, :create], controller: 'task_attachments'
+    end
+    
+    # Direct attachment routes (for accessing without task context)
+    # GET    /api/attachments/:id                -> Show attachment metadata
+    # DELETE /api/attachments/:id                -> Delete attachment
+    # GET    /api/attachments/:id/download       -> Download file
+    # GET    /api/attachments/:id/view           -> View file inline
+    resources :attachments, only: [:show, :destroy], controller: 'task_attachments' do
+      member do
+        get :download
+        get :view
+      end
     end
     
     # Stats endpoint - matches Node.js /api/stats
@@ -70,6 +87,13 @@ Rails.application.routes.draw do
     # GET /tasks/archived -> lists archived (soft-deleted) tasks
     collection do
       get :archived
+    end
+    
+    # Nested attachment routes for HTML interface
+    resources :attachments, only: [:new, :create, :destroy] do
+      member do
+        get :download
+      end
     end
   end
   

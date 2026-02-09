@@ -112,7 +112,27 @@ module Api
     # GET /api/tasks/:id
     # ========================================================================
     def show
-      render json: @task
+      # Include attachments in the response
+      task_json = @task.as_json
+      task_json['attachments'] = @task.attachments.recent.map do |att|
+        {
+          id: att.id,
+          description: att.description,
+          filename: att.file.filename.to_s,
+          content_type: att.file.content_type,
+          byte_size: att.file.byte_size,
+          human_size: att.human_file_size,
+          file_extension: att.file_extension,
+          icon_class: att.icon_class,
+          is_image: att.image?,
+          is_markdown: att.markdown?,
+          download_url: "/api/attachments/#{att.id}/download",
+          view_url: "/api/attachments/#{att.id}/view",
+          created_at: att.created_at
+        }
+      end
+      
+      render json: task_json
     end
 
     # ========================================================================

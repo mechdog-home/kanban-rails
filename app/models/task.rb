@@ -52,6 +52,10 @@ class Task < ApplicationRecord
   # Task has many activities (audit trail)
   # dependent: :destroy ensures activities are deleted when task is deleted
   has_many :activities, class_name: 'TaskActivity', dependent: :destroy
+  
+  # Task has many file attachments
+  # dependent: :destroy removes attachments when task is deleted
+  has_many :attachments, class_name: 'TaskAttachment', dependent: :destroy
 
   # ==========================================================================
   # CONSTANTS

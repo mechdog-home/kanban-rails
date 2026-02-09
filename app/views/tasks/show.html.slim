@@ -232,10 +232,66 @@
                 i.bi.bi-trash
     
     / ==========================================================================
-    / ACTIVITY LOG SIDEBAR
+    / ATTACHMENTS SIDEBAR
     / ==========================================================================
     
     .col-lg-4
+      / Attachments Card
+      .card.mb-4
+        .card-header.d-flex.justify-content-between.align-items-center
+          h5.h6.mb-0
+            i.bi.bi-paperclip.me-2
+            | Attachments
+            span.badge.bg-secondary.ms-2 = @task.attachments.count
+          
+          = link_to new_task_attachment_path(@task), class: "btn btn-sm btn-primary" do
+            i.bi.bi-plus-lg.me-1
+            | Add
+        
+        .card-body
+          - if @task.attachments.any?
+            .list-group.list-group-flush
+              - @task.attachments.recent.each do |attachment|
+                .list-group-item.px-0.py-2
+                  .d-flex.align-items-start
+                    / File icon
+                    .flex-shrink-0.me-2
+                      i.bi.fs-5 class=attachment.icon_class
+                    
+                    .flex-grow-1.min-width-0
+                      / File name (truncated)
+                      .d-flex.align-items-center
+                        - if attachment.image?
+                          = link_to attachment.view_url, target: "_blank", class: "text-decoration-none fw-medium text-truncate" do
+                            = attachment.display_name
+                        - else
+                          = link_to download_task_attachment_path(@task, attachment), class: "text-decoration-none fw-medium text-truncate" do
+                            = attachment.display_name
+                      
+                      / File metadata
+                      .small.text-muted
+                        = attachment.human_file_size
+                        span.mx-1 |
+                        = time_ago_in_words(attachment.created_at) + " ago"
+                      
+                      / Description if present
+                      - if attachment.description.present?
+                        .small.text-secondary.mt-1 = attachment.description
+                    
+                    / Delete button
+                    .flex-shrink-0.ms-2
+                      = button_to task_attachment_path(@task, attachment), method: :delete, class: "btn btn-sm btn-outline-danger", form: { data: { turbo_confirm: "Delete this attachment?" } } do
+                        i.bi.bi-trash
+          - else
+            .text-center.text-muted.py-4
+              i.bi.bi-paperclip.fs-1.mb-2.d-block
+              p.mb-0 No attachments yet.
+              small Upload files to share reference materials.
+      
+      / ==========================================================================
+      / ACTIVITY LOG SIDEBAR
+      / ==========================================================================
+      
       .card
         .card-header
           h5.h6.mb-0
