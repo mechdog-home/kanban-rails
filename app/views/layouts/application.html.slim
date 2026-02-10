@@ -40,6 +40,15 @@ html
     css:
       .navbar-brand i { font-size: 1.5rem; }
       .user-badge { font-size: 0.75rem; }
+      
+      / Spin animation for refresh button
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .spin-animation {
+        animation: spin 1s linear infinite;
+      }
 
   body.d-flex.flex-column.min-vh-100
     / Navigation

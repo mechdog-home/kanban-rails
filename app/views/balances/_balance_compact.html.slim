@@ -11,8 +11,9 @@
 -# Only show providers with actual API data (Moonshot, OpenRouter)
 - api_providers = ['moonshot', 'openrouter']
 - latest = ApiBalanceHistory.latest_balances
+- last_recorded = ApiBalanceHistory.recent.first
 
-#api-balances.balance-compact data-controller="balance" data-balance-url-value="/api/balances" data-balance-refresh-interval-value="300000"
+#api-balances.balance-compact data-controller="balance" data-balance-url-value="/api/balances" data-balance-refresh-url-value="/api/balances/refresh" data-balance-refresh-interval-value="300000"
   .d-flex.align-items-center.gap-3
     - api_providers.each do |provider|
       - data = latest[provider] || {}
@@ -33,6 +34,10 @@
         - status_class = balance > 20 ? 'bg-success' : (balance > 5 ? 'bg-warning' : 'bg-danger')
         span.status-dot.rounded-circle class=status_class style="width: 6px; height: 6px;"
     
-    / Refresh button
-    button.btn.btn-link.btn-sm.p-0.ms-1 type="button" data-action="click->balance#refresh" title="Refresh"
-      i.bi.bi-arrow-clockwise.small.text-muted
+    / Refresh button with last updated timestamp
+    .d-flex.flex-column.align-items-end.ms-1
+      button.btn.btn-link.btn-sm.p-0 type="button" data-action="click->balance#refresh" title="Refresh balances"
+        i.bi.bi-arrow-clockwise.small.text-muted
+      - if last_recorded
+        small.last-updated.text-muted style="font-size: 0.65rem;"
+          = "Updated #{last_recorded.recorded_at.strftime('%H:%M:%S')}"
