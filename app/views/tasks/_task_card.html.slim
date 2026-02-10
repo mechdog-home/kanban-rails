@@ -112,7 +112,7 @@
       .btn-group.btn-group-sm.position-relative style="flex-shrink: 0; z-index: 2;"
         = link_to edit_task_path(task), class: "btn btn-outline-secondary py-0 px-1", title: "Edit" do
           i.bi.bi-pencil.small
-        button.btn.btn-outline-danger.py-0.px-1 type="button" data-controller="task" data-action="click->task#delete" data-task-id-value=task.id title="Delete"
+        = button_to task_path(task), method: :delete, class: "btn btn-outline-danger py-0 px-1", title: "Delete", form: { data: { turbo: true, turbo_confirm: "Delete this task?" }, class: "d-inline" } do
           i.bi.bi-trash.small
     
     / Last worked on timestamp (subtle)

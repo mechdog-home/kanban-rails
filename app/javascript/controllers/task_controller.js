@@ -32,15 +32,19 @@ export default class extends Controller {
     deleteUrl: String
   }
   
-  // Delete with confirmation
-  // Called via: data-action="click->task#delete"
-  async delete(event) {
+  // Archive/Delete with confirmation
+  // Called via: data-action="click->task#archive"
+  // NOTE: This is now handled via button_to with Turbo in the view
+  // This method kept for programmatic use or custom implementations
+  async archive(event) {
     event.preventDefault()
     
-    if (!confirm('Delete this task?')) return
+    if (!confirm('Archive this task?')) return
+    
+    const url = this.deleteUrlValue || `/tasks/${this.idValue}`
     
     try {
-      const response = await fetch(this.deleteUrlValue || `/api/tasks/${this.idValue}`, {
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Accept': 'text/vnd.turbo-stream.html, application/json'
@@ -57,16 +61,14 @@ export default class extends Controller {
         if (!isTurboStream) {
           this.element.remove()
         }
-        // Success! Don't show any error
+        // Success! Task archived
       } else {
-        // Only show error if response was not OK
-        console.error('Delete failed with status:', response.status)
-        alert('Failed to delete task')
+        console.error('Archive failed with status:', response.status)
+        alert('Failed to archive task')
       }
     } catch (error) {
-      // This catches network errors, not HTTP error responses
-      console.error('Network error deleting task:', error)
-      alert('Failed to delete task - network error')
+      console.error('Network error archiving task:', error)
+      alert('Failed to archive task - network error')
     }
   }
   
