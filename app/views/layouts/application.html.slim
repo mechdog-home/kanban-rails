@@ -15,6 +15,13 @@ html
     meta name="application-name" content="Kanban Rails"
     meta name="mobile-web-app-capable" content="yes"
     
+    / PWA Manifest
+    link rel="manifest" href="/manifest.json"
+    meta name="theme-color" content="#0d6efd"
+    
+    / Apple PWA Icons
+    link rel="apple-touch-icon" href="/icon-192x192.png"
+    
     = csrf_meta_tags
     = csp_meta_tag
     
@@ -146,3 +153,6 @@ html
     
     / Bootstrap 5 JS
     script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    
+    / PWA Service Worker Registration
+    = javascript_include_tag "pwa"
