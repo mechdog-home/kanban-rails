@@ -145,6 +145,17 @@ export default class extends Controller {
         // If omitted, the entire card is draggable (which is fine for us)
         // handle: ".card-header",
 
+        // MOBILE FIX: Add delay before drag starts on touch devices
+        // This allows button taps to work without triggering drag
+        // 100ms delay + only on touch = buttons work, drag still works
+        delay: 100,
+        delayOnTouchOnly: true,
+
+        // FILTER: Prevent drag from starting on buttons and links
+        // This ensures interactive elements remain clickable
+        filter: "button, a, .btn, .btn-group",
+        preventOnFilter: false,
+
         // FORCE FALLBACK: Use JS-based drag instead of HTML5 drag API
         // HTML5 drag is buggy across browsers; this is more reliable
         forceFallback: true,
