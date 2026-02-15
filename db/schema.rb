@@ -10,7 +10,35 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_07_185300) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_153600) do
+  create_table "active_storage_attachments", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+  end
+
+  create_table "active_storage_blobs", force: :cascade do |t|
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+  end
+
+  create_table "active_storage_variant_records", force: :cascade do |t|
+    t.bigint "blob_id", null: false
+    t.string "variation_digest", null: false
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
   create_table "api_balance_histories", force: :cascade do |t|
     t.decimal "balance", precision: 15, scale: 6, default: "0.0", null: false
     t.datetime "created_at", null: false
@@ -47,6 +75,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_07_185300) do
     t.index ["task_id", "created_at"], name: "index_task_activities_on_task_id_and_created_at", order: { created_at: :desc }
     t.index ["task_id"], name: "index_task_activities_on_task_id"
     t.index ["user_id"], name: "index_task_activities_on_user_id"
+  end
+
+  create_table "task_attachments", force: :cascade do |t|
+    t.string "content_type"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.integer "task_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["task_id", "created_at"], name: "index_task_attachments_on_task_id_and_created_at"
+    t.index ["task_id"], name: "index_task_attachments_on_task_id"
+    t.index ["user_id"], name: "index_task_attachments_on_user_id"
   end
 
   create_table "tasks", force: :cascade do |t|
@@ -86,8 +126,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_07_185300) do
     t.index ["username"], name: "index_users_on_username", unique: true
   end
 
+  add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "quick_notes", "users"
   add_foreign_key "task_activities", "tasks"
   add_foreign_key "task_activities", "users"
+  add_foreign_key "task_attachments", "tasks"
+  add_foreign_key "task_attachments", "users"
   add_foreign_key "tasks", "users"
 end
