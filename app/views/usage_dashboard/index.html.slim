@@ -1,0 +1,161 @@
+/ ============================================================================
+  Usage Dashboard - AI API Usage Tracking
+  ============================================================================
+  
+  This dashboard visualizes AI API usage over time to help identify
+  patterns and understand budget needs.
+  
+  FEATURES:
+  - Daily remaining percentage chart
+  - Weekly remaining percentage chart
+  - Statistics cards showing averages
+  - Recent activity table
+  
+  ============================================================================
+
+.container.py-4
+  .d-flex.justify-content-between.align-items-center.mb-4
+    h1.mb-0 AI Usage Tracker
+    = link_to "Log Current Usage", log_usage_api_usage_snapshots_path, 
+              method: :post, class: "btn btn-primary", data: { turbo_method: :post }
+
+  / Statistics Cards
+  .row.g-4.mb-4
+    .col-md-3
+      .card.bg-light
+        .card-body
+          h6.card-title.text-muted Total Snapshots
+          h3.mb-0= @stats[:total_snapshots]
+          small.text-muted Since #{@stats[:first_recorded] || "N/A"}
+    
+    .col-md-3
+      .card.bg-light
+        .card-body
+          h6.card-title.text-muted Today's Remaining
+          h3.mb-0 #{@stats[:today_remaining]}%
+          small.text-muted Last recorded: #{@stats[:last_recorded] || "N/A"}
+    
+    .col-md-3
+      .card.bg-light
+        .card-body
+          h6.card-title.text-muted Weekly Remaining
+          h3.mb-0 #{@stats[:this_week_remaining]}%
+          small.text-muted 5-hour window average
+    
+    .col-md-3
+      .card.bg-light
+        .card-body
+          h6.card-title.text-muted 7-Day Avg (Daily)
+          h3.mb-0 #{@stats[:daily_avg]}%
+          small.text-muted Based on last 7 snapshots
+
+  / Charts Row
+  - if @chart_data.any?
+    .row.mb-4
+      .col-md-6
+        .card
+          .card-header
+            h5.mb-0 Daily Remaining %
+          .card-body
+            canvas#dailyChart height="200"
+      
+      .col-md-6
+        .card
+          .card-header
+            h5.mb-0 Weekly Remaining %
+          .card-body
+            canvas#weeklyChart height="200"
+  - else
+    .alert.alert-info.mb-4
+      i.bi.bi-info-circle.me-2
+      | No usage data recorded yet. Click "Log Current Usage" to start tracking.
+
+  / Recent Snapshots Table
+  - if @snapshots.any?
+    .card
+      .card-header
+        h5.mb-0 Recent Snapshots
+      .card-body
+        .table-responsive
+          table.table.table-hover.table-sm
+            thead
+              tr
+                th Time
+                th Model
+                th Daily %
+                th Weekly %
+                th Sessions
+                th Tokens Used
+            tbody
+              - @snapshots.last(10).reverse_each do |snapshot|
+                tr
+                  td= snapshot.recorded_at&.strftime("%m/%d %H:%M")
+                  td= snapshot.ai_model || "Unknown"
+                  td
+                    - if snapshot.daily_remaining
+                      .badge class=(snapshot.daily_remaining > 50 ? "bg-success" : snapshot.daily_remaining > 20 ? "bg-warning" : "bg-danger")
+                        = "#{snapshot.daily_remaining.round(2)}%"
+                  td
+                    - if snapshot.weekly_remaining
+                      .badge class=(snapshot.weekly_remaining > 50 ? "bg-success" : snapshot.weekly_remaining > 20 ? "bg-warning" : "bg-danger")
+                        = "#{snapshot.weekly_remaining.round(2)}%"
+                  td= snapshot.session_count || 0
+                  td= snapshot.total_used ? number_with_delimiter(snapshot.total_used) : "N/A"
+
+/ Chart.js initialization
+- if @chart_data.any?
+  script src="https://cdn.jsdelivr.net/npm/chart.js"
+  javascript:
+    const chartConfig = {
+      type: 'line',
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              callback: function(value) {
+                return value + '%';
+              }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          }
+        }
+      }
+    };
+
+    new Chart(document.getElementById('dailyChart'), {
+      ...chartConfig,
+      data: {
+        labels: #{raw @chart_data[:labels].to_json},
+        datasets: [{
+          label: 'Daily Remaining %',
+          data: #{raw @chart_data[:daily].to_json},
+          borderColor: '#0d6efd',
+          backgroundColor: 'rgba(13, 110, 253, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      }
+    });
+
+    new Chart(document.getElementById('weeklyChart'), {
+      ...chartConfig,
+      data: {
+        labels: #{raw @chart_data[:labels].to_json},
+        datasets: [{
+          label: 'Weekly Remaining %',
+          data: #{raw @chart_data[:weekly].to_json},
+          borderColor: '#198754',
+          backgroundColor: 'rgba(25, 135, 84, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      }
+    });

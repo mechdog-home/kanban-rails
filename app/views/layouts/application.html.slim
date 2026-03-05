@@ -68,6 +68,11 @@ html
                 i.bi.bi-list-task.me-1
                 | Tasks
             
+            li.nav-item
+              = link_to usage_dashboard_path, class: 'nav-link' do
+                i.bi.bi-graph-up.me-1
+                | Usage
+            
             - if user_signed_in? && current_user.super_admin?
               li.nav-item
                 = link_to users_path, class: 'nav-link' do

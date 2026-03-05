@@ -21,10 +21,21 @@
 # ============================================================================
 
 Rails.application.routes.draw do
+  # Usage Dashboard - AI API usage tracking
+  # GET /usage_dashboard - Main dashboard view
+  get 'usage_dashboard', to: 'usage_dashboard#index', as: :usage_dashboard
+  
   devise_for :users
+  
   # API namespace for JSON endpoints
   # This creates routes like /api/tasks
   namespace :api do
+    # Usage Snapshots - AI usage tracking
+    resources :usage_snapshots, only: [:index, :show, :create] do
+      collection do
+        post :log_usage
+      end
+    end
     # Task resource routes (standard RESTful)
     resources :tasks, only: [:index, :show, :create, :update, :destroy] do
       member do
