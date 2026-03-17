@@ -1,6 +1,6 @@
-/ ============================================================================
+/! ============================================================================
 / Partial: Sparky Status Display
-/ ============================================================================
+/! ============================================================================
 /
 / LEARNING NOTES:
 /
@@ -18,7 +18,7 @@
 / The data-controller="sparky-status" connects this element to
 / our Stimulus controller for periodic polling or WebSocket handling.
 /
-/ ============================================================================
+/! ============================================================================
 
 #sparky-status.card class=(status[:is_active] ? 'border-warning' : 'border-secondary') data-controller="sparky-status" data-sparky-status-url-value="/api/sparky/status"
   .card-header.d-flex.justify-content-between.align-items-center

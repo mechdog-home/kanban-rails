@@ -1,12 +1,12 @@
-/ ============================================================================
+/! ============================================================================
 / Partial: AI Provider Balances Display (Compact)
-/ ============================================================================
+/! ============================================================================
 /
 / Compact balance display for kanban board header.
 / Only shows providers with API-accessible balances.
 / Positioned to the left of the Sparky status card.
 /
-/ ============================================================================
+/! ============================================================================
 
 -# Only show providers with actual API data (Moonshot, OpenRouter)
 - api_providers = ['moonshot', 'openrouter']
@@ -40,4 +40,4 @@
         i.bi.bi-arrow-clockwise.small.text-muted
       - if last_recorded
         small.last-updated.text-muted style="font-size: 0.65rem;"
-          = "Updated #{last_recorded.recorded_at.strftime('%H:%M:%S')}"
+          = "Updated #{last_recorded.queried_at.strftime('%H:%M:%S')}"
